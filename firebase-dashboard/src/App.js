@@ -67,7 +67,7 @@ function App() {
 
   return (
     <div style={{ padding: "2rem" }}>
-      <h1>Escalations Dashboard</h1>
+      <h1 style={{ textAlign: 'center' }}>Escalations Dashboard</h1>
 
       {/* Today's Escalations Section */}
       <div style={{ marginBottom: "1rem" }}>
@@ -96,9 +96,12 @@ function App() {
                   <td>{highlightMatch(e.escalatedTo)}</td>
                   <td>{highlightMatch(e.escalator)}</td>
                   <td style={{ maxWidth: "200px", cursor: "pointer" }} onClick={(e) => e.currentTarget.classList.toggle('expanded')}>
-                  <div className="collapsed-description">Click to view description</div>
-                  <div className="full-description" style={{ display: 'none' }}>{highlightMatch(e.description)}</div>
-                </td>
+                    <div className="collapsed-description">{highlightMatch(e.description?.split(/[
+\.]/)[0] || "")}</div>
+                    {e.description && e.description.split(/[
+\.]/).length > 1 && <div className="expand-toggle">...</div>}
+                    <div className="full-description" style={{ display: 'none' }}>{highlightMatch(e.description)}</div>
+                  </td>
                   <td>{e.escalationDate ? new Date(e.escalationDate).toLocaleTimeString('en-US') : ""}</td>
                 </tr>
               ))}
@@ -184,7 +187,13 @@ function App() {
                 <td>{highlightMatch(e.subject)}</td>
                 <td>{highlightMatch(e.escalatedTo)}</td>
                 <td>{highlightMatch(e.escalator)}</td>
-                <td style={{ maxWidth: "200px" }}>{highlightMatch(e.description)}</td>
+                <td style={{ maxWidth: "200px", cursor: "pointer" }} onClick={(e) => e.currentTarget.classList.toggle('expanded')}>
+                    <div className="collapsed-description">{highlightMatch(e.description?.split(/[
+\.]/)[0] || "")}</div>
+                    {e.description && e.description.split(/[
+\.]/).length > 1 && <div className="expand-toggle">...</div>}
+                    <div className="full-description" style={{ display: 'none' }}>{highlightMatch(e.description)}</div>
+                  </td>
                 <td>{e.escalationDate ? new Date(e.escalationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ""}</td>
               </tr>
             ))}
