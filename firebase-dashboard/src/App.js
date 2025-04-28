@@ -76,12 +76,12 @@ function App() {
           <table border="1" cellPadding="8" cellSpacing="0" style={{ width: "100%", tableLayout: "fixed" }}>
             <thead>
               <tr>
-                <th>Ticket URL</th>
+                <th style={{ width: "120px", textAlign: "center" }}>Ticket URL</th>
                 <th>Subject</th>
                 <th>Team</th>
                 <th>Escalator</th>
                 <th>Description</th>
-                <th>Escalation Date</th>
+                <th style={{ width: "140px", textAlign: "center" }}>Escalation Date</th>
               </tr>
             </thead>
             <tbody>
@@ -174,12 +174,12 @@ function App() {
         <table border="1" cellPadding="8" cellSpacing="0" style={{ width: "100%", tableLayout: "fixed" }}>
           <thead>
             <tr>
-              <th>Ticket URL</th>
+              <th style={{ width: "120px", textAlign: "center" }}>Ticket URL</th>
               <th>Subject</th>
               <th>Team</th>
               <th>Escalator</th>
               <th>Description</th>
-              <th>Escalation Date</th>
+              <th style={{ width: "140px", textAlign: "center" }}>Escalation Date</th>
             </tr>
           </thead>
           <tbody>
@@ -217,5 +217,6 @@ function App() {
 }
 
 export default App;
+
 
 
