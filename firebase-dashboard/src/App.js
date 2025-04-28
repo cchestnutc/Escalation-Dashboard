@@ -51,7 +51,7 @@ function App() {
         regex.test(e.description || "") ||
         regex.test(e.escalator || "")
       : true;
-    const matchesDate = applyDateFilter(e.createdAt);
+    const matchesDate = applyDateFilter(e.escalationDate);
     return matchesTeam && matchesEscalator && matchesSearch && matchesDate;
   });
 
@@ -115,7 +115,7 @@ function App() {
             <th>Team</th>
             <th>Escalator</th>
             <th>Description</th>
-            <th>Created At</th>
+            <th>Escalation Date</th>
           </tr>
         </thead>
         <tbody>
@@ -130,7 +130,7 @@ function App() {
               <td>{highlightMatch(e.escalatedTo)}</td>
               <td>{highlightMatch(e.escalator)}</td>
               <td>{highlightMatch(e.description)}</td>
-              <td>{e.createdAt ? new Date(e.createdAt).toLocaleDateString() : ""}</td>
+              <td>{e.escalationDate ? new Date(e.escalationDate).toLocaleDateString() : ""}</td>
             </tr>
           ))}
         </tbody>
@@ -140,7 +140,6 @@ function App() {
 }
 
 export default App;
-
 
 
 
