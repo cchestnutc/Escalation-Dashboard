@@ -92,7 +92,13 @@ function App() {
                       <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
                     ) : "No Link"}
                   </td>
-                  <td>{highlightMatch(e.subject)}</td>
+                  <td
+  style={{ maxWidth: "200px" }}
+  className={`subject-cell`}
+  onClick={(e) => e.currentTarget.classList.toggle('expanded')}
+>
+  {highlightMatch(e.subject)}
+</td>
                   <td>{highlightMatch(e.escalatedTo)}</td>
                   <td>{highlightMatch(e.escalator)}</td>
                   <td
@@ -184,7 +190,13 @@ function App() {
                     <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
                   ) : "No Link"}
                 </td>
-                <td>{highlightMatch(e.subject)}</td>
+                <td
+  style={{ maxWidth: "200px" }}
+  className={`subject-cell`}
+  onClick={(e) => e.currentTarget.classList.toggle('expanded')}
+>
+  {highlightMatch(e.subject)}
+</td>
                 <td>{highlightMatch(e.escalatedTo)}</td>
                 <td>{highlightMatch(e.escalator)}</td>
                 <td
