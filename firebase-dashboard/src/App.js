@@ -97,8 +97,8 @@ function App() {
                   <td>{highlightMatch(e.escalator)}</td>
                   <td style={{ maxWidth: "200px", cursor: "pointer" }} onClick={(e) => e.currentTarget.classList.toggle('expanded')}>
   <div className="collapsed-description">
-    {highlightMatch(e.description?.split(/[.
-]/)[0] || "")}
+    {highlightMatch(e.description ? e.description.split(/[.
+]/)[0] : "")}
     {e.description && e.description.split(/[.
 ]/).length > 1 && <span className="expand-toggle">...</span>}
   </div>
@@ -209,3 +209,4 @@ function App() {
 }
 
 export default App;
+
