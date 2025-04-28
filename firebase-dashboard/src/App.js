@@ -42,10 +42,14 @@ function App() {
     }
   };
 
-  const filteredData = data.filter(e => {
+  const historyData = data
+    .filter(e => e.escalationDate && !isSameDay(new Date(e.escalationDate), new Date()))
+    .sort((a, b) => new Date(b.escalationDate) - new Date(a.escalationDate));
+
+  const filteredData = historyData.filter(e => {
     const matchesTeam = teamFilter ? e.escalatedTo === teamFilter : true;
     const matchesEscalator = escalatorFilter ? e.escalator === escalatorFilter : true;
-    const regex = new RegExp(`\\b${searchText}\\b`, "i");
+    const regex = new RegExp(`${searchText}`, "i");
     const matchesSearch = searchText
       ? regex.test(e.subject || "") ||
         regex.test(e.description || "") ||
@@ -65,7 +69,19 @@ function App() {
 
       {/* Today's Escalations Section */}
       <div style={{ marginBottom: "1rem" }}>
-        <h2>Today's Escalations ({todayEscalations.length})</h2>$1</div>
+        <h2>Today's Escalations ({todayEscalations.length})</h2>
+        {todayEscalations.length > 0 ? (
+          <ul>
+            {todayEscalations.map(e => (
+              <li key={e.id}>
+                {e.subject} - {e.escalatedTo} ({new Date(e.escalationDate).toLocaleTimeString()})
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>Zero escalations so far for today.</p>
+        )}
+      </div>
 
       {/* Escalation History Section */}
       <h2>Escalation History</h2>
@@ -154,7 +170,6 @@ function App() {
 }
 
 export default App;
-
 
 
 
