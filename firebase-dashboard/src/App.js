@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useEscalations } from "./hooks/useEscalations";
-import { isAfter, startOfWeek, startOfMonth, subWeeks, subMonths, startOfYear } from "date-fns";
+import { isAfter, startOfWeek, startOfMonth, subWeeks, subMonths, startOfYear, isSameDay } from "date-fns";
 
 function App() {
   const { data, loading } = useEscalations();
@@ -55,9 +55,21 @@ function App() {
     return matchesTeam && matchesEscalator && matchesSearch && matchesDate;
   });
 
+  const todayEscalations = data.filter(e =>
+    e.escalationDate && isSameDay(new Date(e.escalationDate), new Date())
+  );
+
   return (
     <div style={{ padding: "2rem" }}>
       <h1>Escalations Dashboard</h1>
+
+      {/* Today's Escalations Section */}
+      <div style={{ marginBottom: "1rem" }}>
+        <h2>Today's Escalations ({todayEscalations.length})</h2>$1</div>
+
+      {/* Escalation History Section */}
+      <h2>Escalation History</h2>
+
       <p><strong>Total Tickets: {filteredData.length}</strong></p>
 
       {/* Filters */}
@@ -107,41 +119,41 @@ function App() {
       </div>
 
       {/* Table */}
-      <table border="1" cellPadding="8" cellSpacing="0" style={{ width: "100%" }}>
-        <thead>
-          <tr>
-            <th>Ticket URL</th>
-            <th>Subject</th>
-            <th>Team</th>
-            <th>Escalator</th>
-            <th>Description</th>
-            <th>Escalation Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredData.map(e => (
-            <tr key={e.id}>
-              <td>
-                {e.ticketURL ? (
-                  <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
-                ) : "No Link"}
-              </td>
-              <td>{highlightMatch(e.subject)}</td>
-              <td>{highlightMatch(e.escalatedTo)}</td>
-              <td>{highlightMatch(e.escalator)}</td>
-              <td>{highlightMatch(e.description)}</td>
-              <td>{e.escalationDate ? new Date(e.escalationDate).toLocaleDateString() : ""}</td>
+      <div style={{ overflowX: "auto" }}>
+        <table border="1" cellPadding="8" cellSpacing="0" style={{ width: "100%", tableLayout: "fixed" }}>
+          <thead>
+            <tr>
+              <th>Ticket URL</th>
+              <th>Subject</th>
+              <th>Team</th>
+              <th>Escalator</th>
+              <th>Description</th>
+              <th>Escalation Date</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filteredData.map(e => (
+              <tr key={e.id}>
+                <td>
+                  {e.ticketURL ? (
+                    <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
+                  ) : "No Link"}
+                </td>
+                <td>{highlightMatch(e.subject)}</td>
+                <td>{highlightMatch(e.escalatedTo)}</td>
+                <td>{highlightMatch(e.escalator)}</td>
+                <td style={{ maxWidth: "200px" }}>{highlightMatch(e.description)}</td>
+                <td>{e.escalationDate ? new Date(e.escalationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
 export default App;
-
-
 
 
 
