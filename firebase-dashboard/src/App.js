@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useEscalations } from "./hooks/useEscalations";
 import { isAfter, startOfWeek, startOfMonth, subWeeks, subMonths, startOfYear, isSameDay } from "date-fns";
-import App.js
+import './App.css';
+
 
 function App() {
   const { data, loading } = useEscalations();
