@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useEscalations } from "./hooks/useEscalations";
 import { isAfter, startOfWeek, startOfMonth, subWeeks, subMonths, startOfYear, isSameDay } from "date-fns";
+import App.js
 
 function App() {
   const { data, loading } = useEscalations();
@@ -71,13 +72,37 @@ function App() {
       <div style={{ marginBottom: "1rem" }}>
         <h2>Today's Escalations ({todayEscalations.length})</h2>
         {todayEscalations.length > 0 ? (
-          <ul>
-            {todayEscalations.map(e => (
-              <li key={e.id}>
-                {e.subject} - {e.escalatedTo} ({new Date(e.escalationDate).toLocaleTimeString()})
-              </li>
-            ))}
-          </ul>
+          <table border="1" cellPadding="8" cellSpacing="0" style={{ width: "100%", tableLayout: "fixed" }}>
+            <thead>
+              <tr>
+                <th>Ticket URL</th>
+                <th>Subject</th>
+                <th>Team</th>
+                <th>Escalator</th>
+                <th>Description</th>
+                <th>Escalation Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {todayEscalations.map(e => (
+                <tr key={e.id}>
+                  <td>
+                    {e.ticketURL ? (
+                      <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
+                    ) : "No Link"}
+                  </td>
+                  <td>{highlightMatch(e.subject)}</td>
+                  <td>{highlightMatch(e.escalatedTo)}</td>
+                  <td>{highlightMatch(e.escalator)}</td>
+                  <td style={{ maxWidth: "200px", cursor: "pointer" }} onClick={(e) => e.currentTarget.classList.toggle('expanded')}>
+                  <div className="collapsed-description">Click to view description</div>
+                  <div className="full-description" style={{ display: 'none' }}>{highlightMatch(e.description)}</div>
+                </td>
+                  <td>{e.escalationDate ? new Date(e.escalationDate).toLocaleTimeString('en-US') : ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         ) : (
           <p>Zero escalations so far for today.</p>
         )}
