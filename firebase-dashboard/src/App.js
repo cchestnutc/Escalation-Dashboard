@@ -95,16 +95,12 @@ function App() {
                   <td>{highlightMatch(e.subject)}</td>
                   <td>{highlightMatch(e.escalatedTo)}</td>
                   <td>{highlightMatch(e.escalator)}</td>
-                  <td style={{ maxWidth: "200px", cursor: "pointer" }} onClick={(e) => e.currentTarget.classList.toggle('expanded')}>
-  <div className="collapsed-description">
-    {highlightMatch(e.description ? e.description.split(/[.
-]/)[0] : "")}
-    {e.description && e.description.split(/[.
-]/).length > 1 && <span className="expand-toggle">...</span>}
-  </div>
-  <div className="full-description" style={{ display: 'none' }}>
-    {highlightMatch(e.description)}
-  </div>
+                  <td
+  style={{ maxWidth: "200px" }}
+  className={`description-cell`}
+  onClick={(e) => e.currentTarget.classList.toggle('expanded')}
+>
+  {highlightMatch(e.description)}
 </td>
                   <td>{e.escalationDate ? new Date(e.escalationDate).toLocaleTimeString('en-US') : ""}</td>
                 </tr>
@@ -191,13 +187,13 @@ function App() {
                 <td>{highlightMatch(e.subject)}</td>
                 <td>{highlightMatch(e.escalatedTo)}</td>
                 <td>{highlightMatch(e.escalator)}</td>
-                <td style={{ maxWidth: "200px", cursor: "pointer" }} onClick={(e) => e.currentTarget.classList.toggle('expanded')}>
-                    <div className="collapsed-description">{highlightMatch(e.description?.split(/[.
-]/)[0] || "")}</div>
-                    {e.description && e.description.split(/[.
-]/).length > 1 && <div className="expand-toggle">...</div>}
-                    <div className="full-description" style={{ display: 'none' }}>{highlightMatch(e.description)}</div>
-                  </td>
+                <td
+  style={{ maxWidth: "200px" }}
+  className={`description-cell`}
+  onClick={(e) => e.currentTarget.classList.toggle('expanded')}
+>
+  {highlightMatch(e.description)}
+</td>
                 <td>{e.escalationDate ? new Date(e.escalationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ""}</td>
               </tr>
             ))}
@@ -209,5 +205,6 @@ function App() {
 }
 
 export default App;
+
 
 

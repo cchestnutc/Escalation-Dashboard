@@ -1,24 +1,25 @@
-.collapsed-description + .full-description {
-  display: none;
-}
-
-td.expanded .collapsed-description {
-  display: none;
-}
-
-td.expanded .full-description {
-  display: block;
-}
-
-.expand-toggle {
-  display: inline;
-  color: blue;
+.description-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: pointer;
-  margin-left: 5px;
 }
 
-h1 {
-  text-align: center;
+.description-cell.expanded {
+  white-space: normal;
+  overflow: visible;
+}
+
+.description-cell::after {
+  content: "...";
+  float: right;
+  margin-left: 5px;
+  color: blue;
+}
+
+.description-cell.expanded::after {
+  content: "";
 }
 
 
