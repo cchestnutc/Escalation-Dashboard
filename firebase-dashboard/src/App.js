@@ -87,11 +87,11 @@ function App() {
             <tbody>
               {todayEscalations.map(e => (
                 <tr key={e.id}>
-                  <td>
-                    {e.ticketURL ? (
-                      <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
-                    ) : "No Link"}
-                  </td>
+                  <td style={{ textAlign: "center" }}>
+  {e.ticketURL ? (
+    <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
+  ) : "No Link"}
+</td>
                   <td
   style={{ maxWidth: "200px" }}
   className={`subject-cell`}
@@ -108,7 +108,7 @@ function App() {
 >
   {highlightMatch(e.description)}
 </td>
-                  <td>{e.escalationDate ? new Date(e.escalationDate).toLocaleTimeString('en-US') : ""}</td>
+                  <td style={{ textAlign: "center" }}>{e.escalationDate ? new Date(e.escalationDate).toLocaleTimeString('en-US') : ""}</td>
                 </tr>
               ))}
             </tbody>
@@ -185,11 +185,11 @@ function App() {
           <tbody>
             {filteredData.map(e => (
               <tr key={e.id}>
-                <td>
-                  {e.ticketURL ? (
-                    <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
-                  ) : "No Link"}
-                </td>
+                <td style={{ textAlign: "center" }}>
+  {e.ticketURL ? (
+    <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
+  ) : "No Link"}
+</td>
                 <td
   style={{ maxWidth: "200px" }}
   className={`subject-cell`}
@@ -206,7 +206,7 @@ function App() {
 >
   {highlightMatch(e.description)}
 </td>
-                <td>{e.escalationDate ? new Date(e.escalationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ""}</td>
+                <td style={{ textAlign: "center" }}>{e.escalationDate ? new Date(e.escalationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ""}</td>
               </tr>
             ))}
           </tbody>
