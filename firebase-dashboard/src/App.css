@@ -10,3 +10,10 @@ td.expanded .full-description {
   display: block;
 }
 
+.expand-toggle {
+  display: inline;
+  color: blue;
+  cursor: pointer;
+}
+
+
