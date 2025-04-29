@@ -4,29 +4,38 @@ import { isAfter, startOfWeek, startOfMonth, subWeeks, subMonths, startOfYear, i
 import './App.css';
 
 function App() {
-  const { data, loading, refetch } = useEscalations();
+  const { data, loading } = useEscalations();
   const [teamFilter, setTeamFilter] = useState("");
   const [escalatorFilter, setEscalatorFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [lastUpdated, setLastUpdated] = useState(new Date());
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refetch();
-      setLastUpdated(new Date());
-    }, 60000); // Refresh every 1 minute
-    return () => clearInterval(interval);
-  }, [refetch]);
-
-  if (loading) return <p>Loading...</p>;
+  const [refreshedData, setRefreshedData] = useState([]);
 
   const excludedTeams = ["Help Desk", "Purchasing", "Support Services II"];
 
-  const teams = [...new Set(data.map(e => e.escalatedTo).filter(Boolean))].sort();
-  const buildings = [...new Set(data.map(e => e.building).filter(Boolean))].sort();
-  const escalators = [...new Set(data.map(e => e.escalator).filter(Boolean))].sort();
+  const fetchData = async () => {
+    const refreshed = await useEscalations().data;
+    setRefreshedData(refreshed);
+    setLastUpdated(new Date());
+  };
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(() => {
+      fetchData();
+    }, 60000); // 1 minute refresh
+    return () => clearInterval(interval);
+  }, []);
+
+  const allData = refreshedData.length > 0 ? refreshedData : data;
+
+  if (!allData || loading) return <p>Loading...</p>;
+
+  const teams = [...new Set(allData.map(e => e.escalatedTo).filter(Boolean))].sort();
+  const buildings = [...new Set(allData.map(e => e.building).filter(Boolean))].sort();
+  const escalators = [...new Set(allData.map(e => e.escalator).filter(Boolean))].sort();
 
   const highlightMatch = (text) => {
     if (!searchText || !text) return text;
@@ -59,7 +68,7 @@ function App() {
   const cleanURL = (url) =>
     url && url.includes("Subject") ? url.split("Subject")[0].trim() : url;
 
-  const todayEscalations = data
+  const todayEscalations = allData
     .filter(e =>
       e.escalationDate &&
       isSameDay(new Date(e.escalationDate), new Date()) &&
@@ -67,7 +76,7 @@ function App() {
     )
     .sort((a, b) => new Date(b.escalationDate) - new Date(a.escalationDate));
 
-  const historyData = data
+  const historyData = allData
     .filter(e => e.escalationDate && !isSameDay(new Date(e.escalationDate), new Date()))
     .sort((a, b) => new Date(b.escalationDate) - new Date(a.escalationDate));
 
@@ -91,12 +100,13 @@ function App() {
     <div style={{ padding: "2rem" }}>
       <h1 style={{ textAlign: 'center' }}>Escalations Dashboard</h1>
       <p style={{ textAlign: 'center' }}><em>Last updated: {lastUpdated.toLocaleTimeString()}</em></p>
-      {/* rest of the JSX remains unchanged */}
+      {/* Render the rest of your dashboard UI here using todayEscalations and filteredData */}
     </div>
   );
 }
 
 export default App;
+
 
 
 
