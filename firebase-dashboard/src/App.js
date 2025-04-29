@@ -8,13 +8,15 @@ function App() {
   const { data, loading } = useEscalations();
   const [teamFilter, setTeamFilter] = useState("");
   const [escalatorFilter, setEscalatorFilter] = useState("");
+  const [buildingFilter, setBuildingFilter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [dateFilter, setDateFilter] = useState("");
 
   if (loading) return <p>Loading...</p>;
 
-  const teams = [...new Set(data.map(e => e.escalatedTo).filter(Boolean))];
-  const escalators = [...new Set(data.map(e => e.escalator).filter(Boolean))];
+  const teams = [...new Set(data.map(e => e.escalatedTo).filter(Boolean))].sort();
+  const buildings = [...new Set(data.map(e => e.building).filter(Boolean))].sort();
+  const escalators = [...new Set(data.map(e => e.escalator).filter(Boolean))].sort();
 
   const highlightMatch = (text) => {
     if (!searchText || !text) return text;
@@ -50,15 +52,16 @@ function App() {
 
   const filteredData = historyData.filter(e => {
     const matchesTeam = teamFilter ? e.escalatedTo === teamFilter : true;
+    const matchesBuilding = buildingFilter ? e.building === buildingFilter : true;
     const matchesEscalator = escalatorFilter ? e.escalator === escalatorFilter : true;
     const regex = new RegExp(`${searchText}`, "i");
     const matchesSearch = searchText
       ? regex.test(e.subject || "") ||
         regex.test(e.description || "") ||
-        regex.test(e.escalator || "")
+        regex.test(e.escalator || "") || regex.test(e.building || "")
       : true;
     const matchesDate = applyDateFilter(e.escalationDate);
-    return matchesTeam && matchesEscalator && matchesSearch && matchesDate;
+    return matchesTeam && matchesBuilding && matchesEscalator && matchesSearch && matchesDate;
   });
 
   const todayEscalations = data.filter(e =>
@@ -79,6 +82,7 @@ function App() {
                 <th style={{ width: "120px", textAlign: "center" }}>Ticket URL</th>
                 <th>Subject</th>
                 <th style={{ width: "100px", textAlign: "center" }}>Team</th>
+<th style={{ width: "100px", textAlign: "center" }}>Building</th>
                 <th style={{ width: "100px", textAlign: "center" }}>Escalator</th>
                 <th>Description</th>
                 <th style={{ width: "140px", textAlign: "center" }}>Escalation Date</th>
@@ -100,6 +104,7 @@ function App() {
   {highlightMatch(e.subject)}
 </td>
                   <td>{highlightMatch(e.escalatedTo)}</td>
+<td>{highlightMatch(e.building)}</td>
                   <td>{highlightMatch(e.escalator)}</td>
                   <td
   style={{ maxWidth: "200px" }}
@@ -141,6 +146,16 @@ function App() {
             <option value="">All Escalators</option>
             {escalators.map((esc, idx) => (
               <option key={idx} value={esc}>{esc}</option>
+            ))}
+          </select>
+        </label>
+
+        <label style={{ marginRight: "1rem" }}>
+          Filter by Building:
+          <select value={buildingFilter} onChange={(e) => setBuildingFilter(e.target.value)}>
+            <option value="">All Buildings</option>
+            {buildings.map((bldg, idx) => (
+              <option key={idx} value={bldg}>{bldg}</option>
             ))}
           </select>
         </label>
@@ -197,7 +212,8 @@ function App() {
 >
   {highlightMatch(e.subject)}
 </td>
-                <td>{highlightMatch(e.escalatedTo)}</td>
+                $1
+<td>{highlightMatch(e.building)}</td>
                 <td>{highlightMatch(e.escalator)}</td>
                 <td
   style={{ maxWidth: "200px" }}
@@ -217,6 +233,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
