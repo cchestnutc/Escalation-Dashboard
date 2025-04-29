@@ -1,32 +1,9 @@
-.description-cell {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.description-cell.expanded {
-  white-space: normal;
-  overflow: visible;
-}
-
-.description-cell::after {
-  content: "...";
-  float: right;
-  margin-left: 5px;
-  color: blue;
-}
-
-.description-cell.expanded::after {
-  content: "";
-}
-/* General table cell padding */
+/* General Table Styling */
 td {
-  padding: 4px 8px; /* less top/bottom padding */
+  padding: 4px 8px;
 }
 
-/* Description & Subject truncation */
+/* Description and Subject collapse */
 .description-cell, .subject-cell {
   max-width: 200px;
   overflow: hidden;
@@ -34,44 +11,42 @@ td {
   white-space: nowrap;
   position: relative;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-/* Add three dots only if overflowing */
-.description-cell::after, .subject-cell::after {
-  content: "...";
-  position: absolute;
-  right: 8px;
-  background-color: white; /* covers overflowed text */
-  padding-left: 5px;
-  color: blue;
-  display: none;
-}
-
-/* Show three dots only when overflowing */
-.description-cell:not(.expanded), .subject-cell:not(.expanded) {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.description-cell:not(.expanded)::after,
-.subject-cell:not(.expanded)::after {
-  display: block;
-}
-
-/* Expanded cells show full text */
 .description-cell.expanded, .subject-cell.expanded {
   white-space: normal;
   overflow: visible;
+  transition: all 0.3s ease;
 }
 
-.description-cell.expanded::after, .subject-cell.expanded::after {
-  display: none;
+/* Filter styling */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
-/* Centered table headings */
-th {
-  text-align: center;
+label {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
 }
 
+select, input[type="text"] {
+  margin-left: 0.5rem;
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+select {
+  min-width: 160px;
+}
+
+input[type="text"] {
+  min-width: 200px;
+}
 

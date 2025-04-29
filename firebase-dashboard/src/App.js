@@ -13,6 +13,8 @@ function App() {
 
   if (loading) return <p>Loading...</p>;
 
+  const excludedTeams = ["Help Desk", "Purchasing", "Support Services II"];
+
   const teams = [...new Set(data.map(e => e.escalatedTo).filter(Boolean))].sort();
   const buildings = [...new Set(data.map(e => e.building).filter(Boolean))].sort();
   const escalators = [...new Set(data.map(e => e.escalator).filter(Boolean))].sort();
@@ -45,9 +47,13 @@ function App() {
     }
   };
 
-  const todayEscalations = data.filter(e =>
-    e.escalationDate && isSameDay(new Date(e.escalationDate), new Date())
-  );
+  const todayEscalations = data
+    .filter(e =>
+      e.escalationDate &&
+      isSameDay(new Date(e.escalationDate), new Date()) &&
+      !excludedTeams.includes(e.escalatedTo)
+    )
+    .sort((a, b) => new Date(b.escalationDate) - new Date(a.escalationDate));
 
   const historyData = data
     .filter(e => e.escalationDate && !isSameDay(new Date(e.escalationDate), new Date()))
@@ -65,7 +71,8 @@ function App() {
         regex.test(e.building || "")
       : true;
     const matchesDate = applyDateFilter(e.escalationDate);
-    return matchesTeam && matchesBuilding && matchesEscalator && matchesSearch && matchesDate;
+    const notExcluded = !excludedTeams.includes(e.escalatedTo);
+    return matchesTeam && matchesBuilding && matchesEscalator && matchesSearch && matchesDate && notExcluded;
   });
 
   return (
@@ -122,9 +129,9 @@ function App() {
       <p><strong>Total Tickets: {filteredData.length}</strong></p>
 
       {/* Filters */}
-      <div style={{ marginBottom: "1rem" }}>
-        <label style={{ marginRight: "1rem" }}>
-          Filter by Team:
+      <div className="filters">
+        <label>
+          Team:
           <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
             <option value="">All Teams</option>
             {teams.map((team, idx) => (
@@ -133,8 +140,8 @@ function App() {
           </select>
         </label>
 
-        <label style={{ marginRight: "1rem" }}>
-          Filter by Escalator:
+        <label>
+          Escalator:
           <select value={escalatorFilter} onChange={(e) => setEscalatorFilter(e.target.value)}>
             <option value="">All Escalators</option>
             {escalators.map((esc, idx) => (
@@ -143,8 +150,8 @@ function App() {
           </select>
         </label>
 
-        <label style={{ marginRight: "1rem" }}>
-          Filter by Building:
+        <label>
+          Building:
           <select value={buildingFilter} onChange={(e) => setBuildingFilter(e.target.value)}>
             <option value="">All Buildings</option>
             {buildings.map((bldg, idx) => (
@@ -153,8 +160,8 @@ function App() {
           </select>
         </label>
 
-        <label style={{ marginRight: "1rem" }}>
-          Date Filter:
+        <label>
+          Date:
           <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}>
             <option value="">All Dates</option>
             <option value="lastWeek">Last Week</option>
@@ -172,7 +179,6 @@ function App() {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="Search..."
-            style={{ marginLeft: "0.5rem" }}
           />
         </label>
       </div>
@@ -221,8 +227,6 @@ function App() {
 }
 
 export default App;
-
-
 
 
 
