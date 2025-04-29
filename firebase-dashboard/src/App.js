@@ -78,45 +78,47 @@ function App() {
         {todayEscalations.length > 0 ? (
           <table border="1" cellPadding="8" cellSpacing="0" style={{ width: "100%", tableLayout: "fixed" }}>
             <thead>
-              <tr>
-                <th style={{ width: "120px", textAlign: "center" }}>Ticket URL</th>
-                <th>Subject</th>
-                <th style={{ width: "100px", textAlign: "center" }}>Team</th>
-<th style={{ width: "100px", textAlign: "center" }}>Building</th>
-                <th style={{ width: "100px", textAlign: "center" }}>Escalator</th>
-                <th>Description</th>
-                <th style={{ width: "140px", textAlign: "center" }}>Escalation Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {todayEscalations.map(e => (
-                <tr key={e.id}>
-                  <td style={{ textAlign: "center" }}>
-  {e.ticketURL ? (
-    <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
-  ) : "No Link"}
-</td>
-                  <td
-  style={{ maxWidth: "200px" }}
-  className={`subject-cell`}
-  onClick={(e) => e.currentTarget.classList.toggle('expanded')}
->
-  {highlightMatch(e.subject)}
-</td>
-                  <td>{highlightMatch(e.escalatedTo)}</td>
-<td>{highlightMatch(e.building)}</td>
-                  <td>{highlightMatch(e.escalator)}</td>
-                  <td
-  style={{ maxWidth: "200px" }}
-  className={`description-cell`}
-  onClick={(e) => e.currentTarget.classList.toggle('expanded')}
->
-  {highlightMatch(e.description)}
-</td>
-                  <td style={{ textAlign: "center" }}>{e.escalationDate ? new Date(e.escalationDate).toLocaleTimeString('en-US') : ""}</td>
-                </tr>
-              ))}
-            </tbody>
+  <tr>
+    <th style={{ width: "120px", textAlign: "center" }}>Ticket URL</th>
+    <th>Subject</th>
+    <th style={{ width: "100px", textAlign: "center" }}>Team</th>
+    <th style={{ width: "100px", textAlign: "center" }}>Building</th>
+    <th style={{ width: "100px", textAlign: "center" }}>Escalator</th>
+    <th>Description</th>
+    <th style={{ width: "140px", textAlign: "center" }}>Escalation Date</th>
+  </tr>
+</thead>
+<tbody>
+  {filteredData.map(e => (
+    <tr key={e.id}>
+      <td style={{ textAlign: "center" }}>
+        {e.ticketURL ? (
+          <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
+        ) : "No Link"}
+      </td>
+      <td
+        style={{ maxWidth: "200px" }}
+        className={`subject-cell`}
+        onClick={(e) => e.currentTarget.classList.toggle('expanded')}
+      >
+        {highlightMatch(e.subject)}
+      </td>
+      <td>{highlightMatch(e.escalatedTo)}</td>
+      <td>{highlightMatch(e.building)}</td>
+      <td>{highlightMatch(e.escalator)}</td>
+      <td
+        style={{ maxWidth: "200px" }}
+        className={`description-cell`}
+        onClick={(e) => e.currentTarget.classList.toggle('expanded')}
+      >
+        {highlightMatch(e.description)}
+      </td>
+      <td style={{ textAlign: "center" }}>
+        {e.escalationDate ? new Date(e.escalationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ""}
+      </td>
+    </tr>
+  ))}
+</tbody>
           </table>
         ) : (
           <p>Zero escalations so far for today.</p>
