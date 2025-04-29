@@ -78,8 +78,8 @@ function App() {
               <tr>
                 <th style={{ width: "120px", textAlign: "center" }}>Ticket URL</th>
                 <th>Subject</th>
-                <th>Team</th>
-                <th>Escalator</th>
+                <th style={{ width: "100px", textAlign: "center" }}>Team</th>
+                <th style={{ width: "100px", textAlign: "center" }}>Escalator</th>
                 <th>Description</th>
                 <th style={{ width: "140px", textAlign: "center" }}>Escalation Date</th>
               </tr>
@@ -176,8 +176,8 @@ function App() {
             <tr>
               <th style={{ width: "120px", textAlign: "center" }}>Ticket URL</th>
               <th>Subject</th>
-              <th>Team</th>
-              <th>Escalator</th>
+              <th style={{ width: "100px", textAlign: "center" }}>Team</th>
+              <th style={{ width: "100px", textAlign: "center" }}>Escalator</th>
               <th>Description</th>
               <th style={{ width: "140px", textAlign: "center" }}>Escalation Date</th>
             </tr>
