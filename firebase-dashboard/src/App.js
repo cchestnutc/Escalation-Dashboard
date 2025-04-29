@@ -4,38 +4,29 @@ import { isAfter, startOfWeek, startOfMonth, subWeeks, subMonths, startOfYear, i
 import './App.css';
 
 function App() {
-  const { data, loading } = useEscalations();
+  const { data, loading, refetch } = useEscalations();
   const [teamFilter, setTeamFilter] = useState("");
   const [escalatorFilter, setEscalatorFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [lastUpdated, setLastUpdated] = useState(new Date());
-  const [refreshedData, setRefreshedData] = useState([]);
 
   const excludedTeams = ["Help Desk", "Purchasing", "Support Services II"];
 
-  const fetchData = async () => {
-    const refreshed = await useEscalations().data;
-    setRefreshedData(refreshed);
-    setLastUpdated(new Date());
-  };
-
   useEffect(() => {
-    fetchData();
     const interval = setInterval(() => {
-      fetchData();
+      refetch();
+      setLastUpdated(new Date());
     }, 60000); // 1 minute refresh
     return () => clearInterval(interval);
-  }, []);
+  }, [refetch]);
 
-  const allData = refreshedData.length > 0 ? refreshedData : data;
+  if (loading) return <p>Loading...</p>;
 
-  if (!allData || loading) return <p>Loading...</p>;
-
-  const teams = [...new Set(allData.map(e => e.escalatedTo).filter(Boolean))].sort();
-  const buildings = [...new Set(allData.map(e => e.building).filter(Boolean))].sort();
-  const escalators = [...new Set(allData.map(e => e.escalator).filter(Boolean))].sort();
+  const teams = [...new Set(data.map(e => e.escalatedTo).filter(Boolean))].sort();
+  const buildings = [...new Set(data.map(e => e.building).filter(Boolean))].sort();
+  const escalators = [...new Set(data.map(e => e.escalator).filter(Boolean))].sort();
 
   const highlightMatch = (text) => {
     if (!searchText || !text) return text;
@@ -68,7 +59,7 @@ function App() {
   const cleanURL = (url) =>
     url && url.includes("Subject") ? url.split("Subject")[0].trim() : url;
 
-  const todayEscalations = allData
+  const todayEscalations = data
     .filter(e =>
       e.escalationDate &&
       isSameDay(new Date(e.escalationDate), new Date()) &&
@@ -76,7 +67,7 @@ function App() {
     )
     .sort((a, b) => new Date(b.escalationDate) - new Date(a.escalationDate));
 
-  const historyData = allData
+  const historyData = data
     .filter(e => e.escalationDate && !isSameDay(new Date(e.escalationDate), new Date()))
     .sort((a, b) => new Date(b.escalationDate) - new Date(a.escalationDate));
 
@@ -106,6 +97,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
