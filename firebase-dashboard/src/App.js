@@ -17,11 +17,10 @@ function App() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      escalationHook.refetch?.();
-      setLastUpdated(new Date());
+      window.location.reload();
     }, 60000);
     return () => clearInterval(interval);
-  }, [escalationHook]);
+  }, []);
 
   if (loading) return <p>Loading...</p>;
 
@@ -92,6 +91,7 @@ function App() {
             <th>Subject</th>
             <th>Team</th>
             <th>Escalator</th>
+            <th>Building</th>
             <th>Description</th>
             <th>Escalation Date</th>
           </tr>
@@ -103,6 +103,7 @@ function App() {
               <td>{highlightMatch(e.subject)}</td>
               <td>{highlightMatch(e.escalatedTo)}</td>
               <td>{highlightMatch(e.escalator)}</td>
+              <td>{highlightMatch(e.building)}</td>
               <td>{highlightMatch(e.description)}</td>
               <td className="centered">{new Date(e.escalationDate).toLocaleTimeString()}</td>
             </tr>
@@ -175,6 +176,7 @@ function App() {
             <th>Subject</th>
             <th>Team</th>
             <th>Escalator</th>
+            <th>Building</th>
             <th>Description</th>
             <th>Escalation Date</th>
           </tr>
@@ -186,6 +188,7 @@ function App() {
               <td>{highlightMatch(e.subject)}</td>
               <td>{highlightMatch(e.escalatedTo)}</td>
               <td>{highlightMatch(e.escalator)}</td>
+              <td>{highlightMatch(e.building)}</td>
               <td>{highlightMatch(e.description)}</td>
               <td className="centered">{new Date(e.escalationDate).toLocaleDateString()}</td>
             </tr>
