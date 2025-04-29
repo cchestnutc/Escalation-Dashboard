@@ -4,7 +4,8 @@ import { isAfter, startOfWeek, startOfMonth, subWeeks, subMonths, startOfYear, i
 import './App.css';
 
 function App() {
-  const { data, loading, refetch } = useEscalations();
+  const escalationHook = useEscalations();
+  const { data, loading } = escalationHook;
   const [teamFilter, setTeamFilter] = useState("");
   const [escalatorFilter, setEscalatorFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("");
@@ -16,11 +17,11 @@ function App() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      refetch();
+      escalationHook.refetch?.();
       setLastUpdated(new Date());
-    }, 60000); // 1 minute refresh
+    }, 60000);
     return () => clearInterval(interval);
-  }, [refetch]);
+  }, [escalationHook]);
 
   if (loading) return <p>Loading...</p>;
 
