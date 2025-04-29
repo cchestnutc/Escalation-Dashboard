@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useEscalations } from "./hooks/useEscalations";
 import { isAfter, startOfWeek, startOfMonth, subWeeks, subMonths, startOfYear, isSameDay } from "date-fns";
 import './App.css';
 
 function App() {
-  const { data, loading } = useEscalations();
+  const { data, loading, refetch } = useEscalations();
   const [teamFilter, setTeamFilter] = useState("");
   const [escalatorFilter, setEscalatorFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("");
   const [searchText, setSearchText] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetch();
+    }, 60000); // Refresh every 1 minute
+    return () => clearInterval(interval);
+  }, [refetch]);
 
   if (loading) return <p>Loading...</p>;
 
@@ -234,6 +241,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
