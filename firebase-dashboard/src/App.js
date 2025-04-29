@@ -21,7 +21,7 @@ function App() {
 
   const highlightMatch = (text) => {
     if (!searchText || !text) return text;
-    const regex = new RegExp(`\\b(${searchText})\\b`, "gi");
+    const regex = new RegExp(`\b(${searchText})\b`, "gi");
     return text.split(regex).map((part, i) =>
       regex.test(part) ? <mark key={i}>{part}</mark> : part
     );
@@ -47,6 +47,9 @@ function App() {
     }
   };
 
+  const cleanURL = (url) =>
+    url && url.includes("Subject") ? url.split("Subject")[0].trim() : url;
+
   const todayEscalations = data
     .filter(e =>
       e.escalationDate &&
@@ -63,7 +66,7 @@ function App() {
     const matchesTeam = teamFilter ? e.escalatedTo === teamFilter : true;
     const matchesBuilding = buildingFilter ? e.building === buildingFilter : true;
     const matchesEscalator = escalatorFilter ? e.escalator === escalatorFilter : true;
-    const regex = new RegExp(`\\b${searchText}\\b`, "i");
+    const regex = new RegExp(`\b${searchText}\b`, "i");
     const matchesSearch = searchText
       ? regex.test(e.subject || "") ||
         regex.test(e.description || "") ||
@@ -99,9 +102,11 @@ function App() {
               {todayEscalations.map(e => (
                 <tr key={e.id}>
                   <td style={{ textAlign: "center" }}>
-                    {e.ticketURL ? (
-                      <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
-                    ) : "No Link"}
+                    {e.ticketURL && e.ticketURL.startsWith("https") ? (
+                      <a href={cleanURL(e.ticketURL)} target="_blank" rel="noreferrer">View Ticket</a>
+                    ) : (
+                      "No Link"
+                    )}
                   </td>
                   <td style={{ maxWidth: "200px" }} className="subject-cell" onClick={(e) => e.currentTarget.classList.toggle('expanded')}>
                     {highlightMatch(e.subject)}
@@ -201,9 +206,11 @@ function App() {
             {filteredData.map(e => (
               <tr key={e.id}>
                 <td style={{ textAlign: "center" }}>
-                  {e.ticketURL ? (
-                    <a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a>
-                  ) : "No Link"}
+                  {e.ticketURL && e.ticketURL.startsWith("https") ? (
+                    <a href={cleanURL(e.ticketURL)} target="_blank" rel="noreferrer">View Ticket</a>
+                  ) : (
+                    "No Link"
+                  )}
                 </td>
                 <td style={{ maxWidth: "200px" }} className="subject-cell" onClick={(e) => e.currentTarget.classList.toggle('expanded')}>
                   {highlightMatch(e.subject)}
@@ -227,6 +234,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
