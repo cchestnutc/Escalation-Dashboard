@@ -14,6 +14,9 @@ function App() {
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [expandedRows, setExpandedRows] = useState([]);
   const [searchText, setSearchText] = useState("");
+  const [buildingFilter, setBuildingFilter] = useState("");
+  const [escalatorFilter, setEscalatorFilter] = useState("");
+  const [teamFilter, setTeamFilter] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -41,6 +44,14 @@ function App() {
     );
   };
 
+  const highlightMatch = (text) => {
+    if (!searchText || !text) return text;
+    const regex = new RegExp(`(${searchText})`, "gi");
+    return text.split(regex).map((part, i) =>
+      regex.test(part) ? <mark key={i}>{part}</mark> : part
+    );
+  };
+
   const renderCell = (text, rowId, type) => {
     const cleanText = text?.split("Building:")[0]?.trim() || "";
     const isExpanded = expandedRows.includes(`${rowId}-${type}`);
@@ -52,15 +63,24 @@ function App() {
         className={`${type}-cell ${isExpanded ? "expanded" : ""}`}
         onClick={() => handleToggle(`${rowId}-${type}`)}
       >
-        {isExpanded ? cleanText : firstLine}
+        {isExpanded ? highlightMatch(cleanText) : highlightMatch(firstLine)}
         {!isExpanded && hasMore && <span className="expand-toggle">...</span>}
       </td>
     );
   };
 
+  const uniqueValues = (key) => [...new Set(data.map(e => e[key]).filter(Boolean))].sort();
+
   const filteredHistory = historyEscalations.filter(e => {
-    const regex = new RegExp(`\b${searchText}\b`, "i");
-    return regex.test(e.subject || "") || regex.test(e.description || "") || regex.test(e.escalator || "") || regex.test(e.building || "");
+    const regex = new RegExp(searchText, "i");
+    const matchesSearch = searchText ? (
+      regex.test(e.subject || "") ||
+      regex.test(e.description || "")
+    ) : true;
+    const matchesBuilding = buildingFilter ? e.building === buildingFilter : true;
+    const matchesEscalator = escalatorFilter ? e.escalator === escalatorFilter : true;
+    const matchesTeam = teamFilter ? e.escalatedTo === teamFilter : true;
+    return matchesSearch && matchesBuilding && matchesEscalator && matchesTeam;
   });
 
   const renderTable = (entries) => (
@@ -81,9 +101,9 @@ function App() {
           <tr key={e.id}>
             <td><a href={e.ticketURL.split("Subject")[0].trim()} target="_blank" rel="noreferrer">View Ticket</a></td>
             {renderCell(e.subject, e.id, "subject")}
-            <td>{e.escalatedTo}</td>
-            <td>{e.escalator}</td>
-            <td>{e.building}</td>
+            <td>{highlightMatch(e.escalatedTo)}</td>
+            <td>{highlightMatch(e.escalator)}</td>
+            <td>{highlightMatch(e.building)}</td>
             {renderCell(e.description, e.id, "description")}
             <td className="centered">{format(parseISO(e.escalationDate), 'p')}</td>
           </tr>
@@ -103,16 +123,49 @@ function App() {
       {renderTable(todayEscalations)}
 
       <h2>Escalation History</h2>
-      <label style={{ display: "block", marginBottom: "1rem" }}>
-        Search History:
-        <input
-          type="text"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          placeholder="Search by subject, description, escalator, or building"
-          style={{ marginLeft: "0.5rem", padding: "4px 8px" }}
-        />
-      </label>
+
+      <div className="filters">
+        <label>
+          Team:
+          <select value={teamFilter} onChange={(e) => setTeamFilter(e.target.value)}>
+            <option value="">All</option>
+            {uniqueValues("escalatedTo").map((team, idx) => (
+              <option key={idx} value={team}>{team}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Escalator:
+          <select value={escalatorFilter} onChange={(e) => setEscalatorFilter(e.target.value)}>
+            <option value="">All</option>
+            {uniqueValues("escalator").map((person, idx) => (
+              <option key={idx} value={person}>{person}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Building:
+          <select value={buildingFilter} onChange={(e) => setBuildingFilter(e.target.value)}>
+            <option value="">All</option>
+            {uniqueValues("building").map((bldg, idx) => (
+              <option key={idx} value={bldg}>{bldg}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Search:
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Search subject or description"
+          />
+        </label>
+      </div>
+
       <p>Total Tickets: {filteredHistory.length}</p>
       {renderTable(filteredHistory)}
     </div>
