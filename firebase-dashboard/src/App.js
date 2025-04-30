@@ -103,7 +103,7 @@ function App() {
             {renderCell(e.subject, e.id, "subject")}
             <td>{highlightMatch(e.escalatedTo)}</td>
             <td>{highlightMatch(e.escalator)}</td>
-            <td>{highlightMatch(e.building?.replace(/(Elementary|Middle School)/gi, '').trim())}</td>
+            <td>{highlightMatch(e.building?.replace(/\b(Elementary|Middle School)\b/gi, '').trim())}</td>
             {renderCell(e.description, e.id, "description")}
             <td className="centered">{format(parseISO(e.escalationDate), 'p')}</td>
           </tr>
@@ -150,9 +150,9 @@ function App() {
           <select value={buildingFilter} onChange={(e) => setBuildingFilter(e.target.value)}>
             <option value="">All</option>
             {uniqueValues("building").map((bldg, idx) => {
-              const label = bldg.replace(/(Elementary|Middle School)/gi, '').trim();
-              <option key={idx} value={bldg}>{label}</option>
-            ))}
+              const label = bldg.replace(/\b(Elementary|Middle School)\b/gi, '').trim();
+              return <option key={idx} value={bldg}>{label}</option>;
+            })}
           </select>
         </label>
 
@@ -174,7 +174,6 @@ function App() {
 }
 
 export default App;
-
 
 
 
