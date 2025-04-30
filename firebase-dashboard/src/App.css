@@ -56,6 +56,8 @@ table.data-table {
 .expand-toggle {
   color: #999;
   padding-left: 5px;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 /* Filter styling */
@@ -87,5 +89,4 @@ select {
 input[type="text"] {
   min-width: 200px;
 }
-
 
