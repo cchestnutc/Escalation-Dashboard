@@ -6,13 +6,23 @@ import {
   query,
   orderBy
 } from "firebase/firestore";
+import { isSameDay, parseISO, format } from "date-fns";
 import "./App.css";
 
 function App() {
-  const [escalations, setEscalations] = useState([]);
+  const [data, setData] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [expandedRows, setExpandedRows] = useState([]);
 
   useEffect(() => {
+    const fetchData = async () => {
+      const q = query(collection(db, "escalations"), orderBy("escalationDate", "desc"));
+      const snapshot = await getDocs(q);
+      const result = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setData(result);
+      setLastUpdated(new Date());
+    };
+
     fetchData();
     const interval = setInterval(() => {
       window.location.reload();
@@ -20,36 +30,34 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const fetchData = async () => {
-    const q = query(collection(db, "escalations"), orderBy("escalationDate", "desc"));
-    const querySnapshot = await getDocs(q);
-    const data = querySnapshot.docs.map(doc => doc.data());
-    setEscalations(data);
-    setLastUpdated(new Date());
-  };
+  const today = new Date();
+  const todayEscalations = data.filter(e => isSameDay(parseISO(e.escalationDate), today));
+  const historyEscalations = data.filter(e => !isSameDay(parseISO(e.escalationDate), today));
 
-  const today = new Date().toDateString();
-  const todaysEscalations = escalations.filter(e => new Date(e.escalationDate).toDateString() === today);
-  const historyEscalations = escalations.filter(e => new Date(e.escalationDate).toDateString() !== today);
-
-  const collapseText = (text, type) => {
-    const cleanText = text.split(/Building:/)[0].trim();
-    const firstLine = cleanText.split(". ")[0];
-    const isLong = cleanText.length > firstLine.length + 10;
-
-    return (
-      <div
-        className={`${type}-cell`}
-        onClick={e => e.currentTarget.classList.toggle("expanded")}
-      >
-        {firstLine}
-        {isLong && <span className="expand-toggle">...</span>}
-        <div className="expanded-content">{cleanText}</div>
-      </div>
+  const handleToggle = (rowId) => {
+    setExpandedRows(prev =>
+      prev.includes(rowId) ? prev.filter(id => id !== rowId) : [...prev, rowId]
     );
   };
 
-  const renderTable = (data) => (
+  const renderCell = (text, rowId, type) => {
+    const cleanText = text?.split("Building:")[0]?.trim() || "";
+    const isExpanded = expandedRows.includes(`${rowId}-${type}`);
+    const firstLine = cleanText.split(/[.\n]/)[0];
+    const hasMore = cleanText.length > firstLine.length + 5;
+
+    return (
+      <td
+        className={`${type}-cell ${isExpanded ? "expanded" : ""}`}
+        onClick={() => handleToggle(`${rowId}-${type}`)}
+      >
+        {isExpanded ? cleanText : firstLine}
+        {!isExpanded && hasMore && <span className="expand-toggle">...</span>}
+      </td>
+    );
+  };
+
+  const renderTable = (entries) => (
     <table className="data-table">
       <thead>
         <tr>
@@ -63,15 +71,15 @@ function App() {
         </tr>
       </thead>
       <tbody>
-        {data.map((e, index) => (
-          <tr key={index}>
+        {entries.map(e => (
+          <tr key={e.id}>
             <td><a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a></td>
-            <td>{collapseText(e.subject || "", "subject")}</td>
+            {renderCell(e.subject, e.id, "subject")}
             <td>{e.escalatedTo}</td>
             <td>{e.escalator}</td>
             <td>{e.building}</td>
-            <td>{collapseText(e.description || "", "description")}</td>
-            <td className="centered">{new Date(e.escalationDate).toLocaleTimeString()}</td>
+            {renderCell(e.description, e.id, "description")}
+            <td className="centered">{format(parseISO(e.escalationDate), 'p')}</td>
           </tr>
         ))}
       </tbody>
@@ -79,24 +87,23 @@ function App() {
   );
 
   return (
-    <div>
+    <div className="App">
       <h1 style={{ textAlign: "center" }}>Escalations Dashboard</h1>
       <p style={{ textAlign: "center", fontStyle: "italic" }}>
-        Last updated: {lastUpdated.toLocaleTimeString()}
+        Last updated: {format(lastUpdated, 'p')}
       </p>
 
-      <h2>Today's Escalations ({todaysEscalations.length})</h2>
-      {renderTable(todaysEscalations)}
+      <h2>Today's Escalations ({todayEscalations.length})</h2>
+      {renderTable(todayEscalations)}
 
-      <h2 style={{ marginTop: "2rem" }}>Escalation History</h2>
+      <h2>Escalation History</h2>
+      <p>Total Tickets: {historyEscalations.length}</p>
       {renderTable(historyEscalations)}
     </div>
   );
 }
 
 export default App;
-
-
 
 
 
