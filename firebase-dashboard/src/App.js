@@ -13,6 +13,7 @@ function App() {
   const [data, setData] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [expandedRows, setExpandedRows] = useState([]);
+  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -57,6 +58,11 @@ function App() {
     );
   };
 
+  const filteredHistory = historyEscalations.filter(e => {
+    const regex = new RegExp(`\b${searchText}\b`, "i");
+    return regex.test(e.subject || "") || regex.test(e.description || "") || regex.test(e.escalator || "") || regex.test(e.building || "");
+  });
+
   const renderTable = (entries) => (
     <table className="data-table">
       <thead>
@@ -73,7 +79,7 @@ function App() {
       <tbody>
         {entries.map(e => (
           <tr key={e.id}>
-            <td><a href={e.ticketURL} target="_blank" rel="noreferrer">View Ticket</a></td>
+            <td><a href={e.ticketURL.split("Subject")[0].trim()} target="_blank" rel="noreferrer">View Ticket</a></td>
             {renderCell(e.subject, e.id, "subject")}
             <td>{e.escalatedTo}</td>
             <td>{e.escalator}</td>
@@ -97,8 +103,18 @@ function App() {
       {renderTable(todayEscalations)}
 
       <h2>Escalation History</h2>
-      <p>Total Tickets: {historyEscalations.length}</p>
-      {renderTable(historyEscalations)}
+      <label style={{ display: "block", marginBottom: "1rem" }}>
+        Search History:
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="Search by subject, description, escalator, or building"
+          style={{ marginLeft: "0.5rem", padding: "4px 8px" }}
+        />
+      </label>
+      <p>Total Tickets: {filteredHistory.length}</p>
+      {renderTable(filteredHistory)}
     </div>
   );
 }
