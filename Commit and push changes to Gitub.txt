@@ -1,0 +1,12 @@
+Commit and push changes to Gitub
+git add .
+git commit -m "Note:LUpdate to show escalationDate instead of createdAt"
+git push origin master
+
+npm run build
+
+
+npm start
+
+
+
