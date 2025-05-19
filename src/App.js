@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { db } from "./firebase";
 import {
@@ -8,6 +9,8 @@ import {
 } from "firebase/firestore";
 import { isSameDay, parseISO, format } from "date-fns";
 import "./App.css";
+
+console.log("App loaded at", new Date().toLocaleTimeString());
 
 function App() {
   const [data, setData] = useState([]);
