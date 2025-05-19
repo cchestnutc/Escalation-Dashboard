@@ -38,6 +38,7 @@ function App() {
     fetchInitialData();
   }, []);
 
+  // Refresh just today's escalations every 60 seconds
   useEffect(() => {
     const interval = setInterval(async () => {
       const q = query(collection(db, "escalations"), orderBy("escalationDate", "desc"));
@@ -84,10 +85,13 @@ function App() {
     );
   };
 
-  const uniqueValues = (key) => [...new Set(data.map(e => e[key]).filter(Boolean))].sort();
+  const uniqueValues = (key) =>
+    [...new Set(data.map(e => e[key]).filter(Boolean))].sort();
 
+  // Exclude Help Desk escalations from history
   const historyEscalations = data.filter(e =>
-    !isSameDay(parseISO(e.escalationDate), today)
+    !isSameDay(parseISO(e.escalationDate), today) &&
+    (e.escalatedTo?.toLowerCase().trim() !== "help desk")
   );
 
   const filteredHistory = historyEscalations.filter(e => {
@@ -99,8 +103,7 @@ function App() {
     const matchesBuilding = buildingFilter ? e.building === buildingFilter : true;
     const matchesEscalator = escalatorFilter ? e.escalator === escalatorFilter : true;
     const matchesTeam = teamFilter ? e.escalatedTo === teamFilter : true;
-    const notHelpDesk = e.escalatedTo?.toLowerCase() !== "help desk";
-    return matchesSearch && matchesBuilding && matchesEscalator && matchesTeam && notHelpDesk;
+    return matchesSearch && matchesBuilding && matchesEscalator && matchesTeam;
   });
 
   const renderTable = (entries) => (
