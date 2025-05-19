@@ -11,7 +11,6 @@ import "./App.css";
 
 function App() {
   const [data, setData] = useState([]);
-  const [todayEscalations, setTodayEscalations] = useState([]);
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [expandedRows, setExpandedRows] = useState([]);
   const [searchText, setSearchText] = useState("");
@@ -19,41 +18,25 @@ function App() {
   const [escalatorFilter, setEscalatorFilter] = useState("");
   const [teamFilter, setTeamFilter] = useState("");
 
-  const today = new Date();
-
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchData = async () => {
       const q = query(collection(db, "escalations"), orderBy("escalationDate", "desc"));
       const snapshot = await getDocs(q);
       const result = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setData(result);
       setLastUpdated(new Date());
-
-      // Initialize today's escalations
-      const todays = result.filter(e =>
-        isSameDay(parseISO(e.escalationDate), today)
-      );
-      setTodayEscalations(todays);
     };
 
-    fetchInitialData();
-  }, []);
-
-  // Only update today's escalations every minute
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      const q = query(collection(db, "escalations"), orderBy("escalationDate", "desc"));
-      const snapshot = await getDocs(q);
-      const result = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const todays = result.filter(e =>
-        isSameDay(parseISO(e.escalationDate), new Date())
-      );
-      setTodayEscalations(todays);
-      setLastUpdated(new Date());
+    fetchData();
+    const interval = setInterval(() => {
+      window.location.reload();
     }, 60000);
-
     return () => clearInterval(interval);
   }, []);
+
+  const today = new Date();
+  const todayEscalations = data.filter(e => isSameDay(parseISO(e.escalationDate), today));
+  const historyEscalations = data.filter(e => !isSameDay(parseISO(e.escalationDate), today));
 
   const handleToggle = (rowId) => {
     setExpandedRows(prev =>
@@ -87,10 +70,6 @@ function App() {
   };
 
   const uniqueValues = (key) => [...new Set(data.map(e => e[key]).filter(Boolean))].sort();
-
-  const historyEscalations = data.filter(e =>
-    !isSameDay(parseISO(e.escalationDate), today)
-  );
 
   const filteredHistory = historyEscalations.filter(e => {
     const regex = new RegExp(searchText, "i");
@@ -195,3 +174,8 @@ function App() {
 }
 
 export default App;
+
+
+
+
+
