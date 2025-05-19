@@ -29,7 +29,6 @@ function App() {
       setData(result);
       setLastUpdated(new Date());
 
-      // Initialize today's escalations
       const todays = result.filter(e =>
         isSameDay(parseISO(e.escalationDate), today)
       );
@@ -39,7 +38,6 @@ function App() {
     fetchInitialData();
   }, []);
 
-  // Only update today's escalations every minute
   useEffect(() => {
     const interval = setInterval(async () => {
       const q = query(collection(db, "escalations"), orderBy("escalationDate", "desc"));
@@ -101,7 +99,8 @@ function App() {
     const matchesBuilding = buildingFilter ? e.building === buildingFilter : true;
     const matchesEscalator = escalatorFilter ? e.escalator === escalatorFilter : true;
     const matchesTeam = teamFilter ? e.escalatedTo === teamFilter : true;
-    return matchesSearch && matchesBuilding && matchesEscalator && matchesTeam;
+    const notHelpDesk = e.escalatedTo?.toLowerCase() !== "help desk";
+    return matchesSearch && matchesBuilding && matchesEscalator && matchesTeam && notHelpDesk;
   });
 
   const renderTable = (entries) => (
@@ -195,3 +194,4 @@ function App() {
 }
 
 export default App;
+
