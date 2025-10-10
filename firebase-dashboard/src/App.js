@@ -133,7 +133,7 @@ function Table({ rows }) {
   return (
     <div className="table">
       <div className="thead">
-        <div>Ticket URL</div>
+        <div><SafeLink url={r.ticketURL} />
         <div>Subject</div>
         <div>Description</div>
         <div>Team</div>
