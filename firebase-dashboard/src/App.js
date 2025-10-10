@@ -36,16 +36,6 @@ function SafeLink({ url }) {
     </a>
   );
 }
-
-  return (
-    <div className="link-cell">
-      <a href={href} target="_blank" rel="noopener noreferrer">Open</a>
-      <button className="btn link-copy" type="button" onClick={copy}>
-        Copy
-      </button>
-    </div>
-  );
-}
                             
 /* -------------------------
    Data fetchers (bounded, no scans)
