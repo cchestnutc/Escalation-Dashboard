@@ -144,7 +144,6 @@ function Table({ rows }) {
 
       {rows.map((r) => (
         <div key={r.id} className="trow">
-          {/* ✅ use SafeLink here, in the row, not in the header */}
           <div><SafeLink url={r.ticketURL} /></div>
 
           <div className="truncate">{r.subject ?? "-"}</div>
