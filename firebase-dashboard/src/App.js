@@ -25,32 +25,17 @@ function RowDate({ value }){ const d=toDate(value); return <>{d?dayjs(d).format(
 function SafeLink({ url }) {
   if (!url) return <>-</>;
 
-  let raw = String(url).trim();
-
-  // 1) Clean URLs like ...392e44Subject: (no whitespace)
-  //    Also works if there IS whitespace.
+  // Clean cases like "...392e44Subject:" (with/without whitespace)
+  const raw = String(url).trim();
   const m = raw.match(/(https?:\/\/[^\s]*?)(?:Subject:|$)/i);
-  let href = m ? m[1] : raw;
+  const href = (m ? m[1] : raw).replace(/[)\s]+$/g, "");
 
-  // 2) Final tidy: strip stray trailing punctuation/spaces
-  href = href.replace(/[)\s]+$/g, "");
-
-  // 3) Robust copy (works even if navigator.clipboard is blocked)
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(href);
-    } catch {
-      const t = document.createElement("textarea");
-      t.value = href;
-      t.setAttribute("readonly", "");
-      t.style.position = "absolute";
-      t.style.left = "-9999px";
-      document.body.appendChild(t);
-      t.select();
-      document.execCommand("copy");
-      document.body.removeChild(t);
-    }
-  };
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      Open
+    </a>
+  );
+}
 
   return (
     <div className="link-cell">
