@@ -133,7 +133,7 @@ function Table({ rows }) {
   return (
     <div className="table">
       <div className="thead">
-        <div><SafeLink url={r.ticketURL} />
+        <div>Ticket URL</div>
         <div>Subject</div>
         <div>Description</div>
         <div>Team</div>
@@ -144,7 +144,9 @@ function Table({ rows }) {
 
       {rows.map((r) => (
         <div key={r.id} className="trow">
-          <div>{r.ticketURL ? <a href={r.ticketURL} target="_blank" rel="noreferrer">Open</a> : "-"}</div>
+          {/* ✅ use SafeLink here, in the row, not in the header */}
+          <div><SafeLink url={r.ticketURL} /></div>
+
           <div className="truncate">{r.subject ?? "-"}</div>
           <div className="truncate">{r.description ?? "-"}</div>
           <div>{r.escalatedTo ?? r.team ?? "-"}</div>
@@ -156,6 +158,7 @@ function Table({ rows }) {
     </div>
   );
 }
+
 
 /* -------------------------
    Views
