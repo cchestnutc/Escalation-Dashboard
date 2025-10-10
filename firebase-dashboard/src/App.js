@@ -25,10 +25,11 @@ function RowDate({ value }){ const d=toDate(value); return <>{d?dayjs(d).format(
 function SafeLink({ url }) {
   if (!url) return <>-</>;
 
-  // Clean cases like "...392e44Subject:" (with/without whitespace)
+  // Clean cases like "...392e44Subject:" or URL-encoded "Subject%3A"
   const raw = String(url).trim();
-  const m = raw.match(/(https?:\/\/[^\s]*?)(?:Subject:|$)/i);
-  const href = (m ? m[1] : raw).replace(/[)\s]+$/g, "");
+  const m =
+    raw.match(/(https?:\/\/[^\s]*?)(?:Subject:|Subject%3A|$)/i) || [];
+  const href = (m[1] || raw).replace(/[)\s]+$/g, "");
 
   return (
     <a href={href} target="_blank" rel="noopener noreferrer">
