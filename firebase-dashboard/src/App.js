@@ -24,20 +24,38 @@ function toDate(v){ if(!v) return null; if(typeof v?.toDate==="function") return
 function RowDate({ value }){ const d=toDate(value); return <>{d?dayjs(d).format("YYYY-MM-DD HH:mm"):"-"}</>; }
 function SafeLink({ url }) {
   if (!url) return <>-</>;
-  // keep only the URL portion (drop anything after whitespace or accidental text)
-  let href = String(url).trim();
-  const m = href.match(/https?:\/\/[^\s]+/i);
-  href = m ? m[0] : href; // if it matches, use the clean part
+
+  let raw = String(url).trim();
+
+  // 1) Clean URLs like ...392e44Subject: (no whitespace)
+  //    Also works if there IS whitespace.
+  const m = raw.match(/(https?:\/\/[^\s]*?)(?:Subject:|$)/i);
+  let href = m ? m[1] : raw;
+
+  // 2) Final tidy: strip stray trailing punctuation/spaces
+  href = href.replace(/[)\s]+$/g, "");
+
+  // 3) Robust copy (works even if navigator.clipboard is blocked)
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(href);
+    } catch {
+      const t = document.createElement("textarea");
+      t.value = href;
+      t.setAttribute("readonly", "");
+      t.style.position = "absolute";
+      t.style.left = "-9999px";
+      document.body.appendChild(t);
+      t.select();
+      document.execCommand("copy");
+      document.body.removeChild(t);
+    }
+  };
 
   return (
     <div className="link-cell">
       <a href={href} target="_blank" rel="noopener noreferrer">Open</a>
-      <button
-        className="btn link-copy"
-        type="button"
-        onClick={() => navigator.clipboard.writeText(href)}
-        title="Copy link"
-      >
+      <button className="btn link-copy" type="button" onClick={copy}>
         Copy
       </button>
     </div>
@@ -145,7 +163,6 @@ function Table({ rows }) {
       {rows.map((r) => (
         <div key={r.id} className="trow">
           <div><SafeLink url={r.ticketURL} /></div>
-
           <div className="truncate">{r.subject ?? "-"}</div>
           <div className="truncate">{r.description ?? "-"}</div>
           <div>{r.escalatedTo ?? r.team ?? "-"}</div>
