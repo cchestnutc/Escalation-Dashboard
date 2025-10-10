@@ -22,7 +22,28 @@ function monthKey(d = new Date()) { return `${d.getFullYear()}-${String(d.getMon
 function monthBounds(yyyymm){ const [y,m]=yyyymm.split("-").map(Number); return { start:new Date(y,m-1,1,0,0,0,0), next:new Date(y,m,1,0,0,0,0) }; }
 function toDate(v){ if(!v) return null; if(typeof v?.toDate==="function") return v.toDate(); const d=new Date(v); return isNaN(d)?null:d; }
 function RowDate({ value }){ const d=toDate(value); return <>{d?dayjs(d).format("YYYY-MM-DD HH:mm"):"-"}</>; }
+function SafeLink({ url }) {
+  if (!url) return <>-</>;
+  // keep only the URL portion (drop anything after whitespace or accidental text)
+  let href = String(url).trim();
+  const m = href.match(/https?:\/\/[^\s]+/i);
+  href = m ? m[0] : href; // if it matches, use the clean part
 
+  return (
+    <div className="link-cell">
+      <a href={href} target="_blank" rel="noopener noreferrer">Open</a>
+      <button
+        className="btn link-copy"
+        type="button"
+        onClick={() => navigator.clipboard.writeText(href)}
+        title="Copy link"
+      >
+        Copy
+      </button>
+    </div>
+  );
+}
+                            
 /* -------------------------
    Data fetchers (bounded, no scans)
 ------------------------- */
