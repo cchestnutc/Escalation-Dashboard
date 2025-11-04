@@ -12,18 +12,6 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import "./App.css";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
 
 /* -------------------------
    Helpers
@@ -139,6 +127,158 @@ async function fetchTrendsData({ days = 30 }) {
   );
   const snap = await getDocs(qy);
   return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+/* -------------------------
+   Chart Components (CSS-based)
+------------------------- */
+function LineChart({ data, maxHeight = 200 }) {
+  if (!data || data.length === 0) return <div className="empty">No data</div>;
+  
+  const maxValue = Math.max(...data.map(d => d.count), 1);
+  const chartHeight = maxHeight;
+  
+  return (
+    <div style={{ width: '100%', height: chartHeight + 40, position: 'relative' }}>
+      {/* Y-axis labels */}
+      <div style={{ 
+        position: 'absolute', 
+        left: 0, 
+        top: 0, 
+        bottom: 40, 
+        width: 30,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        fontSize: 11,
+        color: 'var(--muted)',
+        textAlign: 'right',
+        paddingRight: 8
+      }}>
+        <div>{maxValue}</div>
+        <div>{Math.round(maxValue / 2)}</div>
+        <div>0</div>
+      </div>
+
+      {/* Chart area */}
+      <div style={{ 
+        marginLeft: 35, 
+        height: chartHeight, 
+        display: 'flex', 
+        alignItems: 'flex-end',
+        gap: 2,
+        borderBottom: '1px solid var(--line)',
+        borderLeft: '1px solid var(--line)',
+        paddingLeft: 8,
+        paddingBottom: 8
+      }}>
+        {data.map((item, idx) => {
+          const heightPercent = (item.count / maxValue) * 100;
+          return (
+            <div 
+              key={idx}
+              style={{
+                flex: 1,
+                height: `${heightPercent}%`,
+                minHeight: item.count > 0 ? 2 : 0,
+                background: 'linear-gradient(to top, #2563eb, #3b82f6)',
+                borderRadius: '2px 2px 0 0',
+                position: 'relative',
+                cursor: 'pointer',
+              }}
+              title={`${item.date}: ${item.count}`}
+            />
+          );
+        })}
+      </div>
+
+      {/* X-axis labels */}
+      <div style={{ 
+        marginLeft: 35, 
+        display: 'flex', 
+        marginTop: 4,
+        paddingLeft: 8
+      }}>
+        {data.map((item, idx) => {
+          // Only show every Nth label to avoid crowding
+          const showLabel = idx % Math.ceil(data.length / 8) === 0 || idx === data.length - 1;
+          return (
+            <div 
+              key={idx}
+              style={{
+                flex: 1,
+                fontSize: 9,
+                color: 'var(--muted)',
+                textAlign: 'center',
+                transform: 'rotate(-45deg)',
+                transformOrigin: 'top left',
+                whiteSpace: 'nowrap',
+                marginLeft: -10
+              }}
+            >
+              {showLabel ? dayjs(item.date).format('MM/DD') : ''}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function HorizontalBarChart({ data, color = '#10b981', maxBarWidth = '100%' }) {
+  if (!data || data.length === 0) return <div className="empty">No data</div>;
+  
+  const maxValue = Math.max(...data.map(d => d.count), 1);
+  
+  return (
+    <div style={{ width: '100%' }}>
+      {data.map((item, idx) => (
+        <div 
+          key={idx}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: 12,
+            gap: 12
+          }}
+        >
+          <div style={{
+            width: 120,
+            fontSize: 13,
+            fontWeight: 500,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            textAlign: 'right'
+          }} title={item.name}>
+            {item.name}
+          </div>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <div style={{
+              height: 28,
+              width: `${(item.count / maxValue) * 100}%`,
+              background: color,
+              borderRadius: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              paddingRight: 8,
+              minWidth: 30,
+              transition: 'width 0.3s ease'
+            }}>
+              <span style={{ 
+                color: 'white', 
+                fontWeight: 600, 
+                fontSize: 12 
+              }}>
+                {item.count}
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 /* -------------------------
@@ -439,7 +579,7 @@ function TrendsView() {
       </div>
 
       {/* Summary KPIs */}
-      <div className="kpi-grid">
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
         <Kpi label={`Total (${days} days)`} value={trends.totalEscalations} />
         <Kpi label="Avg Per Day" value={trends.avgPerDay} />
         <Kpi label="Unique Teams" value={trends.uniqueTeams} />
@@ -451,29 +591,7 @@ function TrendsView() {
         <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
           Escalations Over Time
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={trends.timelineData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis 
-              dataKey="date" 
-              tick={{ fontSize: 12 }}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Legend />
-            <Line 
-              type="monotone" 
-              dataKey="count" 
-              stroke="#2563eb" 
-              strokeWidth={2}
-              name="Escalations"
-              dot={{ r: 3 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <LineChart data={trends.timelineData} maxHeight={250} />
       </div>
 
       {/* Top Escalators */}
@@ -481,20 +599,7 @@ function TrendsView() {
         <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
           Top Escalators
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={trends.topEscalators} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis type="number" tick={{ fontSize: 12 }} />
-            <YAxis 
-              dataKey="name" 
-              type="category" 
-              width={120}
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip />
-            <Bar dataKey="count" fill="#10b981" name="Escalations" />
-          </BarChart>
-        </ResponsiveContainer>
+        <HorizontalBarChart data={trends.topEscalators} color="#10b981" />
       </div>
 
       {/* Top Teams */}
@@ -502,20 +607,7 @@ function TrendsView() {
         <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
           Top Teams (Most Escalations Received)
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={trends.topTeams} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis type="number" tick={{ fontSize: 12 }} />
-            <YAxis 
-              dataKey="name" 
-              type="category" 
-              width={120}
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip />
-            <Bar dataKey="count" fill="#f59e0b" name="Escalations" />
-          </BarChart>
-        </ResponsiveContainer>
+        <HorizontalBarChart data={trends.topTeams} color="#f59e0b" />
       </div>
 
       {/* Top Buildings */}
@@ -523,20 +615,7 @@ function TrendsView() {
         <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
           Top Buildings (Most Escalations)
         </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={trends.topBuildings} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis type="number" tick={{ fontSize: 12 }} />
-            <YAxis 
-              dataKey="name" 
-              type="category" 
-              width={120}
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip />
-            <Bar dataKey="count" fill="#8b5cf6" name="Escalations" />
-          </BarChart>
-        </ResponsiveContainer>
+        <HorizontalBarChart data={trends.topBuildings} color="#8b5cf6" />
       </div>
     </div>
   );
