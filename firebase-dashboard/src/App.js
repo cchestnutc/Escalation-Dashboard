@@ -12,6 +12,18 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import "./App.css";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 /* -------------------------
    Helpers
@@ -101,6 +113,34 @@ async function fetchHistoryPage({ yyyymm, pageSize = 200, cursor }) {
   return { rows: snap.docs.map(d=>({id:d.id,...d.data()})), cursor: snap.docs.at(-1) ?? null };
 }
 
+async function fetchTrendsData({ days = 30 }) {
+  const col = collection(db, "escalations");
+  const start = new Date();
+  start.setDate(start.getDate() - days);
+  start.setHours(0, 0, 0, 0);
+
+  // Fetch all escalations from the last N days
+  try {
+    let qy = query(col,
+      where("escalationDate", ">=", start),
+      orderBy("escalationDate", "desc"),
+      limit(1000) // Get up to 1000 records for trends
+    );
+    const snap = await getDocs(qy);
+    if (!snap.empty) return snap.docs.map(d=>({id:d.id,...d.data()}));
+  } catch {}
+
+  // ISO string fallback
+  const sISO = start.toISOString();
+  let qy = query(col,
+    where("escalationDate", ">=", sISO),
+    orderBy("escalationDate", "desc"),
+    limit(1000)
+  );
+  const snap = await getDocs(qy);
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
 /* -------------------------
    Small UI bits
 ------------------------- */
@@ -109,6 +149,7 @@ function Tabs({ active, onChange }) {
     <div className="tabs">
       <button className={`tab ${active==="today"?"active":""}`} onClick={()=>onChange("today")}>Today</button>
       <button className={`tab ${active==="history"?"active":""}`} onClick={()=>onChange("history")}>History</button>
+      <button className={`tab ${active==="trends"?"active":""}`} onClick={()=>onChange("trends")}>Trends</button>
     </div>
   );
 }
@@ -247,7 +288,7 @@ function HistoryView() {
       {isLoading ? (
         <div className="loading">Loading…</div>
       ) : filtered.length === 0 ? (
-        <div className="empty">No results for {month}{searchTerm ? ` matching “${searchTerm}”` : ""}.</div>
+        <div className="empty">No results for {month}{searchTerm ? ` matching "${searchTerm}"` : ""}.</div>
       ) : (
         <>
           <Table rows={filtered} />
@@ -264,6 +305,243 @@ function HistoryView() {
   );
 }
 
+function TrendsView() {
+  const [days, setDays] = useState(30);
+  
+  const { data: rawData, isLoading, error } = useQuery({
+    queryKey: ["trends", days],
+    queryFn: () => fetchTrendsData({ days }),
+    staleTime: 5 * 60_000,
+  });
+
+  const rows = rawData ?? [];
+
+  // Calculate trends
+  const trends = useMemo(() => {
+    if (!rows.length) return null;
+
+    // Daily escalation counts
+    const dailyCounts = {};
+    rows.forEach(r => {
+      const date = toDate(r.escalationDate);
+      if (!date) return;
+      const dayKey = dayjs(date).format("YYYY-MM-DD");
+      dailyCounts[dayKey] = (dailyCounts[dayKey] || 0) + 1;
+    });
+
+    // Fill in missing days with 0
+    const today = new Date();
+    const timelineData = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dayKey = dayjs(d).format("YYYY-MM-DD");
+      timelineData.push({
+        date: dayKey,
+        count: dailyCounts[dayKey] || 0,
+      });
+    }
+
+    // Top escalators
+    const escalatorCounts = {};
+    rows.forEach(r => {
+      const esc = r.escalator || "Unknown";
+      escalatorCounts[esc] = (escalatorCounts[esc] || 0) + 1;
+    });
+    const topEscalators = Object.entries(escalatorCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+
+    // Top teams
+    const teamCounts = {};
+    rows.forEach(r => {
+      const team = r.escalatedTo || r.team || "Unknown";
+      teamCounts[team] = (teamCounts[team] || 0) + 1;
+    });
+    const topTeams = Object.entries(teamCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+
+    // Top buildings
+    const buildingCounts = {};
+    rows.forEach(r => {
+      const building = r.building || r.buildingName || r.buildingCode || "Unknown";
+      buildingCounts[building] = (buildingCounts[building] || 0) + 1;
+    });
+    const topBuildings = Object.entries(buildingCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+
+    // Summary stats
+    const totalEscalations = rows.length;
+    const avgPerDay = (totalEscalations / days).toFixed(1);
+    const uniqueTeams = Object.keys(teamCounts).length;
+    const uniqueBuildings = Object.keys(buildingCounts).length;
+
+    return {
+      timelineData,
+      topEscalators,
+      topTeams,
+      topBuildings,
+      totalEscalations,
+      avgPerDay,
+      uniqueTeams,
+      uniqueBuildings,
+    };
+  }, [rows, days]);
+
+  if (error) {
+    return (
+      <div className="panel">
+        <div className="empty">Error loading trends: {String(error.message || error)}</div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="panel">
+        <div className="loading">Loading trends…</div>
+      </div>
+    );
+  }
+
+  if (!trends || !rows.length) {
+    return (
+      <div className="panel">
+        <div className="empty">No data available for the selected period.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="panel">
+      {/* Time range selector */}
+      <div className="history-toolbar" style={{ marginBottom: 16 }}>
+        <label>
+          Time Range
+          <select
+            className="search"
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            style={{ width: 'auto', minWidth: 150 }}
+          >
+            <option value={7}>Last 7 Days</option>
+            <option value={14}>Last 14 Days</option>
+            <option value={30}>Last 30 Days</option>
+            <option value={60}>Last 60 Days</option>
+            <option value={90}>Last 90 Days</option>
+          </select>
+        </label>
+      </div>
+
+      {/* Summary KPIs */}
+      <div className="kpi-grid">
+        <Kpi label={`Total (${days} days)`} value={trends.totalEscalations} />
+        <Kpi label="Avg Per Day" value={trends.avgPerDay} />
+        <Kpi label="Unique Teams" value={trends.uniqueTeams} />
+        <Kpi label="Unique Buildings" value={trends.uniqueBuildings} />
+      </div>
+
+      {/* Escalations Over Time */}
+      <div className="card" style={{ marginTop: 20, padding: 20 }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+          Escalations Over Time
+        </h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={trends.timelineData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis 
+              dataKey="date" 
+              tick={{ fontSize: 12 }}
+              angle={-45}
+              textAnchor="end"
+              height={80}
+            />
+            <YAxis tick={{ fontSize: 12 }} />
+            <Tooltip />
+            <Legend />
+            <Line 
+              type="monotone" 
+              dataKey="count" 
+              stroke="#2563eb" 
+              strokeWidth={2}
+              name="Escalations"
+              dot={{ r: 3 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Top Escalators */}
+      <div className="card" style={{ marginTop: 20, padding: 20 }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+          Top Escalators
+        </h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={trends.topEscalators} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis type="number" tick={{ fontSize: 12 }} />
+            <YAxis 
+              dataKey="name" 
+              type="category" 
+              width={120}
+              tick={{ fontSize: 12 }}
+            />
+            <Tooltip />
+            <Bar dataKey="count" fill="#10b981" name="Escalations" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Top Teams */}
+      <div className="card" style={{ marginTop: 20, padding: 20 }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+          Top Teams (Most Escalations Received)
+        </h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={trends.topTeams} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis type="number" tick={{ fontSize: 12 }} />
+            <YAxis 
+              dataKey="name" 
+              type="category" 
+              width={120}
+              tick={{ fontSize: 12 }}
+            />
+            <Tooltip />
+            <Bar dataKey="count" fill="#f59e0b" name="Escalations" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Top Buildings */}
+      <div className="card" style={{ marginTop: 20, padding: 20 }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+          Top Buildings (Most Escalations)
+        </h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={trends.topBuildings} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis type="number" tick={{ fontSize: 12 }} />
+            <YAxis 
+              dataKey="name" 
+              type="category" 
+              width={120}
+              tick={{ fontSize: 12 }}
+            />
+            <Tooltip />
+            <Bar dataKey="count" fill="#8b5cf6" name="Escalations" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 /* -------------------------
    App
 ------------------------- */
@@ -273,14 +551,9 @@ export default function App() {
     <div className="app-shell">
       <header className="app-header"><h1>Escalations</h1></header>
       <Tabs active={tab} onChange={setTab} />
-      {tab === "today" ? <TodayView /> : <HistoryView />}
+      {tab === "today" && <TodayView />}
+      {tab === "history" && <HistoryView />}
+      {tab === "trends" && <TrendsView />}
     </div>
   );
 }
-
-
-
-
-
-
-
