@@ -78,6 +78,9 @@ const STOP_WORDS = new Set([
   'make', 'made', 'said', 'does', 'done', 'well', 'much', 'many',
   'working', 'access', 'work', 'class', // Generic action words
   
+  // Generic ticketing terms (user requested)
+  'request', 'incident', 'general', 'hear', 'congress',
+  
   // Building/Location identifiers (exclude these from keyword analysis)
   'building', 'school', 'elementary', 'middle', 'high', 'office',
   'district', 'park', 'hill', 'students', 'student', 'campus',
@@ -85,7 +88,7 @@ const STOP_WORDS = new Set([
   'north', 'south', 'east', 'west', 'main', 'annex',
   
   // Common school/location names (add more as you discover them)
-  'walden', 'hopewell', 'quot', 'able', // quot and able look like they might be location names or artifacts
+  'walden', 'hopewell', 'quot', 'able', 'parkhill', // parkhill added per user request
   
   // Building/School codes (numeric codes are now auto-filtered)
   '559810', '559816', // These are filtered by number detection, but keeping for reference
@@ -93,8 +96,10 @@ const STOP_WORDS = new Set([
   // General location words
   'location', 'site', 'area', 'zone', 'section', 'department',
   
-  // Keep terms like: door, intercom, vivi, outlook, badge, application
-  // (by NOT including them in this stop words list)
+  // Keep technical terms like these (by NOT including them in stop words):
+  // Equipment: door, intercom, vivi, projector, printer, speaker, camera, badge, etc.
+  // Systems: outlook, teams, wifi, mfa, nevco, cricut, papercut, etc.
+  // Actions: unlock, reset, password, login, etc.
 ]);
                             
 /* -------------------------
