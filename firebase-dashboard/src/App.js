@@ -22,11 +22,14 @@ function monthKey(d = new Date()) { return `${d.getFullYear()}-${String(d.getMon
 function monthBounds(yyyymm){ const [y,m]=yyyymm.split("-").map(Number); return { start:new Date(y,m-1,1,0,0,0,0), next:new Date(y,m,1,0,0,0,0) }; }
 function toDate(v){ if(!v) return null; if(typeof v?.toDate==="function") return v.toDate(); const d=new Date(v); return isNaN(d)?null:d; }
 function RowDate({ value }){ const d=toDate(value); return <>{d?dayjs(d).format("YYYY-MM-DD HH:mm"):"-"}</>; }
-function SafeLink({ url }) {
-  if (!url) return <>-</>;
+function SafeLink({ url, ticketUrl, link, ticketLink }) {
+  // Try multiple possible field names for the URL
+  const rawUrl = url || ticketUrl || link || ticketLink;
+  
+  if (!rawUrl) return <>-</>;
 
   // Clean cases like "...392e44Subject:" or URL-encoded "Subject%3A"
-  const raw = String(url).trim();
+  const raw = String(rawUrl).trim();
   const m =
     raw.match(/(https?:\/\/[^\s]*?)(?:Subject:|Subject%3A|$)/i) || [];
   const href = (m[1] || raw).replace(/[)\s]+$/g, "");
@@ -364,6 +367,13 @@ function Tabs({ active, onChange }) {
 
 function Table({ rows }) {
   if (!rows || rows.length === 0) return <div className="empty">No data</div>;
+  
+  // DEBUG: Uncomment the lines below to see what fields are in your data
+  // if (rows.length > 0) {
+  //   console.log('First row fields:', Object.keys(rows[0]));
+  //   console.log('First row data:', rows[0]);
+  // }
+  
   return (
     <div className="table">
       <div className="thead">
@@ -377,7 +387,14 @@ function Table({ rows }) {
       </div>
       {rows.map((r) => (
         <div className="trow" key={r.id}>
-          <div className="truncate"><SafeLink url={r.ticketUrl} /></div>
+          <div className="truncate">
+            <SafeLink 
+              url={r.ticketUrl} 
+              ticketUrl={r.ticketURL} 
+              link={r.url} 
+              ticketLink={r.ticketLink}
+            />
+          </div>
           <div className="truncate" title={r.subject}>{r.subject || "-"}</div>
           <div className="truncate" title={r.description}>{r.description || "-"}</div>
           <div className="truncate" title={r.escalatedTo || r.team}>{r.escalatedTo || r.team || "-"}</div>
