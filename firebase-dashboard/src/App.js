@@ -50,12 +50,31 @@ function extractWords(text) {
 
 // NEW: Common words to exclude from keyword analysis
 const STOP_WORDS = new Set([
+  // Common words
   'that', 'this', 'with', 'from', 'have', 'been', 'were', 'they',
   'what', 'when', 'where', 'which', 'who', 'will', 'would', 'could',
   'should', 'about', 'into', 'through', 'during', 'before', 'after',
   'above', 'below', 'between', 'under', 'again', 'further', 'then',
   'once', 'here', 'there', 'also', 'just', 'your', 'their', 'ticket',
-  'escalation', 'escalated', 'issue', 'please', 'thanks', 'thank'
+  'escalation', 'escalated', 'issue', 'please', 'thanks', 'thank',
+  'need', 'needs', 'needed', 'help', 'want', 'some', 'more', 'very',
+  'make', 'made', 'said', 'does', 'done', 'well', 'much', 'many',
+  'working', 'access', // Generic action words
+  
+  // Building/Location identifiers (exclude these from keyword analysis)
+  'building', 'school', 'elementary', 'middle', 'high', 'office',
+  'district', 'park', 'hill', 'students', 'student', 'campus',
+  'room', 'classroom', 'hall', 'center', 'wing', 'floor',
+  'north', 'south', 'east', 'west', 'main', 'annex',
+  
+  // Building/School codes (add specific ones you see frequently)
+  '559810', // This appears to be a building code
+  
+  // General location words
+  'location', 'site', 'area', 'zone', 'section', 'department',
+  
+  // Keep terms like: door, intercom, vivi, outlook, badge, application
+  // (by NOT including them in this stop words list)
 ]);
                             
 /* -------------------------
