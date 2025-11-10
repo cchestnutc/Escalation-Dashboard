@@ -724,6 +724,19 @@ function TrendsView() {
             <Kpi label="Unique Buildings" value={trends.uniqueBuildings} />
           </div>
 
+          {/* Show filtered tickets table when keyword search is active */}
+          {keywordSearch && (
+            <div className="card" style={{ marginTop: 20, padding: 20 }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 600 }}>
+                Tickets Matching "{keywordSearch}"
+              </h3>
+              <p style={{ margin: '0 0 16px 0', fontSize: 13, color: 'var(--muted)' }}>
+                Showing {filteredRows.length} ticket{filteredRows.length !== 1 ? 's' : ''} containing these keywords
+              </p>
+              <Table rows={filteredRows} />
+            </div>
+          )}
+
           {/* Escalations Over Time */}
           <div className="card" style={{ marginTop: 20, padding: 20 }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
@@ -742,7 +755,7 @@ function TrendsView() {
             </p>
             <HorizontalBarChart data={trends.topKeywords} color="#dc2626" />
             <div style={{ marginTop: 16, fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
-              💡 Tip: Click on any keyword above to copy it, then paste it in the filter box to drill deeper
+              💡 Tip: Click on any keyword above to copy it, then paste it in the filter box to see the tickets
             </div>
           </div>
 
