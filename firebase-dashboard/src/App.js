@@ -45,7 +45,21 @@ function extractWords(text) {
     .toLowerCase()
     .replace(/[^\w\s]/g, ' ') // Remove punctuation
     .split(/\s+/)
-    .filter(word => word.length > 3); // Only words longer than 3 chars
+    .filter(word => {
+      // Filter out short words
+      if (word.length < 4) return false;
+      // Filter out pure numbers or mostly numeric (like building codes)
+      if (/^\d+$/.test(word)) return false;
+      return true;
+    })
+    .map(word => {
+      // Normalize plurals to singular (basic stemming)
+      // Convert "doors" → "door", "printers" → "printer", etc.
+      if (word.endsWith('s') && word.length > 4 && !word.endsWith('ss')) {
+        return word.slice(0, -1);
+      }
+      return word;
+    });
 }
 
 // NEW: Common words to exclude from keyword analysis
@@ -59,7 +73,7 @@ const STOP_WORDS = new Set([
   'escalation', 'escalated', 'issue', 'please', 'thanks', 'thank',
   'need', 'needs', 'needed', 'help', 'want', 'some', 'more', 'very',
   'make', 'made', 'said', 'does', 'done', 'well', 'much', 'many',
-  'working', 'access', // Generic action words
+  'working', 'access', 'work', 'class', // Generic action words
   
   // Building/Location identifiers (exclude these from keyword analysis)
   'building', 'school', 'elementary', 'middle', 'high', 'office',
@@ -67,8 +81,11 @@ const STOP_WORDS = new Set([
   'room', 'classroom', 'hall', 'center', 'wing', 'floor',
   'north', 'south', 'east', 'west', 'main', 'annex',
   
-  // Building/School codes (add specific ones you see frequently)
-  '559810', // This appears to be a building code
+  // Common school/location names (add more as you discover them)
+  'walden', 'hopewell', 'quot', 'able', // quot and able look like they might be location names or artifacts
+  
+  // Building/School codes (numeric codes are now auto-filtered)
+  '559810', '559816', // These are filtered by number detection, but keeping for reference
   
   // General location words
   'location', 'site', 'area', 'zone', 'section', 'department',
@@ -584,7 +601,8 @@ function TrendsView() {
         ...extractWords(r.description)
       ];
       words.forEach(word => {
-        if (!STOP_WORDS.has(word)) {
+        // Check if the word (or its plural form) is in stop words
+        if (!STOP_WORDS.has(word) && !STOP_WORDS.has(word + 's')) {
           wordCounts[word] = (wordCounts[word] || 0) + 1;
         }
       });
