@@ -76,7 +76,7 @@ const STOP_WORDS = new Set([
   'escalation', 'escalated', 'issue', 'please', 'thanks', 'thank',
   'need', 'needs', 'needed', 'help', 'want', 'some', 'more', 'very',
   'make', 'made', 'said', 'does', 'done', 'well', 'much', 'many',
-  'working', 'access', 'work', 'class', 'cannot', 'line', 'grade', 'like', 'time', 'teacher', 'longer', // Generic action words
+  'working', 'access', 'work', 'class', 'cannot', 'line', 'grade', 'like', 'time', 'teacher', 'longer', 'call', 'unable', // Generic action words
   
   // Generic ticketing terms (user requested)
   'request', 'incident', 'general', 'hear', 'congress',
