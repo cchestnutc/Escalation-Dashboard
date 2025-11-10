@@ -76,7 +76,7 @@ const STOP_WORDS = new Set([
   'escalation', 'escalated', 'issue', 'please', 'thanks', 'thank',
   'need', 'needs', 'needed', 'help', 'want', 'some', 'more', 'very',
   'make', 'made', 'said', 'does', 'done', 'well', 'much', 'many',
-  'working', 'access', 'work', 'class', 'cannot', 'line', 'grade', 'like', 'time', // Generic action words
+  'working', 'access', 'work', 'class', 'cannot', 'line', 'grade', 'like', 'time', 'teacher', 'longer', // Generic action words
   
   // Generic ticketing terms (user requested)
   'request', 'incident', 'general', 'hear', 'congress',
@@ -89,6 +89,14 @@ const STOP_WORDS = new Set([
   
   // Common school/location names (add more as you discover them)
   'walden', 'hopewell', 'quot', 'able', 'parkhill', 'creek', 'chinn', // Location names per user request
+  // Elementary schools
+  'angeline', 'washington', 'english', 'landing', 'graden', 'hawthorn', 
+  'prairie', 'point', 'renner', 'southeast', 'tiffany', 'ridge', 'union', 'chapel',
+  // Middle schools
+  'lakeview', 'plaza', 'congress',
+  // High schools & other facilities
+  'lead', 'innovation', 'studio', 'academic', 'services', 'aquatic', 
+  'gerner', 'russell', 'jones', 'wellbeing', 'well-being',
   
   // Building/School codes (numeric codes are now auto-filtered)
   '559810', '559816', // These are filtered by number detection, but keeping for reference
