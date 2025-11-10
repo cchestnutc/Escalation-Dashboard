@@ -37,6 +37,26 @@ function SafeLink({ url }) {
     </a>
   );
 }
+
+// NEW: Text extraction helper for keyword analysis
+function extractWords(text) {
+  if (!text) return [];
+  return String(text)
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ') // Remove punctuation
+    .split(/\s+/)
+    .filter(word => word.length > 3); // Only words longer than 3 chars
+}
+
+// NEW: Common words to exclude from keyword analysis
+const STOP_WORDS = new Set([
+  'that', 'this', 'with', 'from', 'have', 'been', 'were', 'they',
+  'what', 'when', 'where', 'which', 'who', 'will', 'would', 'could',
+  'should', 'about', 'into', 'through', 'during', 'before', 'after',
+  'above', 'below', 'between', 'under', 'again', 'further', 'then',
+  'once', 'here', 'there', 'also', 'just', 'your', 'their', 'ticket',
+  'escalation', 'escalated', 'issue', 'please', 'thanks', 'thank'
+]);
                             
 /* -------------------------
    Data fetchers (bounded, no scans)
@@ -255,24 +275,21 @@ function HorizontalBarChart({ data, color = '#10b981', maxBarWidth = '100%' }) {
           </div>
           <div style={{ flex: 1, position: 'relative' }}>
             <div style={{
-              height: 28,
+              height: 32,
               width: `${(item.count / maxValue) * 100}%`,
               background: color,
-              borderRadius: 4,
+              borderRadius: 6,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'flex-end',
-              paddingRight: 8,
-              minWidth: 30,
+              paddingRight: 10,
+              minWidth: item.count > 0 ? 30 : 0,
+              color: 'white',
+              fontSize: 13,
+              fontWeight: 600,
               transition: 'width 0.3s ease'
             }}>
-              <span style={{ 
-                color: 'white', 
-                fontWeight: 600, 
-                fontSize: 12 
-              }}>
-                {item.count}
-              </span>
+              {item.count}
             </div>
           </div>
         </div>
@@ -282,49 +299,56 @@ function HorizontalBarChart({ data, color = '#10b981', maxBarWidth = '100%' }) {
 }
 
 /* -------------------------
-   Small UI bits
+   Components
 ------------------------- */
-function Tabs({ active, onChange }) {
-  return (
-    <div className="tabs">
-      <button className={`tab ${active==="today"?"active":""}`} onClick={()=>onChange("today")}>Today</button>
-      <button className={`tab ${active==="history"?"active":""}`} onClick={()=>onChange("history")}>History</button>
-      <button className={`tab ${active==="trends"?"active":""}`} onClick={()=>onChange("trends")}>Trends</button>
-    </div>
-  );
-}
 function Kpi({ label, value }) {
   return (
     <div className="kpi">
       <div className="kpi-label">{label}</div>
-      <div className="kpi-value">{value}</div>
+      <div className="kpi-value">{value ?? 0}</div>
     </div>
   );
 }
 
-/* 7-column table:
-   Ticket URL | Subject | Description | Team | Escalator | Building | Escalation Date */
+function Tabs({ active, onChange }) {
+  return (
+    <div className="tabs">
+      {["today", "history", "trends"].map((t) => (
+        <button
+          key={t}
+          className={`tab ${active === t ? "active" : ""}`}
+          onClick={() => onChange(t)}
+        >
+          {t.charAt(0).toUpperCase() + t.slice(1)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function Table({ rows }) {
+  if (!rows || rows.length === 0) return <div className="empty">No data</div>;
   return (
     <div className="table">
       <div className="thead">
-        <div>Ticket URL</div>
+        <div>Ticket</div>
         <div>Subject</div>
         <div>Description</div>
         <div>Team</div>
         <div>Escalator</div>
         <div>Building</div>
-        <div>Escalation Date</div>
+        <div>Date</div>
       </div>
-
       {rows.map((r) => (
-        <div key={r.id} className="trow">
-          <div><SafeLink url={r.ticketURL} /></div>
-          <div className="truncate">{r.subject ?? "-"}</div>
-          <div className="truncate">{r.description ?? "-"}</div>
-          <div>{r.escalatedTo ?? r.team ?? "-"}</div>
-          <div>{r.escalator ?? "-"}</div>
-          <div>{r.building ?? r.buildingName ?? r.buildingCode ?? "-"}</div>
+        <div className="trow" key={r.id}>
+          <div className="truncate"><SafeLink url={r.ticketUrl} /></div>
+          <div className="truncate" title={r.subject}>{r.subject || "-"}</div>
+          <div className="truncate" title={r.description}>{r.description || "-"}</div>
+          <div className="truncate" title={r.escalatedTo || r.team}>{r.escalatedTo || r.team || "-"}</div>
+          <div className="truncate" title={r.escalator}>{r.escalator || "-"}</div>
+          <div className="truncate" title={r.building || r.buildingName || r.buildingCode}>
+            {r.building || r.buildingName || r.buildingCode || "-"}
+          </div>
           <div><RowDate value={r.escalationDate} /></div>
         </div>
       ))}
@@ -332,35 +356,36 @@ function Table({ rows }) {
   );
 }
 
-
-/* -------------------------
-   Views
-------------------------- */
 function TodayView() {
   const [cursor, setCursor] = useState(null);
   const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ["today", { cursorId: cursor?.id ?? null }],
     queryFn: () => fetchToday({ pageSize: 200, cursor }),
     keepPreviousData: true,
-    staleTime: 60_000,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
   });
 
   const rows = data?.rows ?? [];
   const hasMore = Boolean(data?.cursor);
 
+  // Compute simple stats
+  const uniqueTeams = new Set(rows.map((r) => r.escalatedTo || r.team).filter(Boolean)).size;
+  const uniqueBuildings = new Set(rows.map((r) => r.building || r.buildingName || r.buildingCode).filter(Boolean)).size;
+
   return (
     <div className="panel">
       <div className="kpi-grid">
-        <Kpi label="Today" value={rows.length} />
-        <Kpi label="Teams" value={new Set(rows.map(x => x.escalatedTo ?? x.team)).size} />
-        <Kpi label="Buildings" value={new Set(rows.map(x => x.building ?? x.buildingName ?? x.buildingCode)).size} />
+        <Kpi label="Today's Escalations" value={rows.length} />
+        <Kpi label="Teams Involved" value={uniqueTeams} />
+        <Kpi label="Buildings Affected" value={uniqueBuildings} />
       </div>
 
       {error && <div className="empty">Error loading Today: {String(error.message || error)}</div>}
       {isLoading ? (
         <div className="loading">Loading…</div>
       ) : rows.length === 0 ? (
-        <div className="empty">No escalations yet today.</div>
+        <div className="empty">No escalations today yet.</div>
       ) : (
         <>
           <Table rows={rows} />
@@ -378,9 +403,9 @@ function TodayView() {
 }
 
 function HistoryView() {
-  const [month, setMonth] = useState(monthKey(new Date()));
+  const [month, setMonth] = useState(monthKey());
   const [cursor, setCursor] = useState(null);
-  const [searchTerm, setSearchTerm] = useState(""); // page-local filter
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ["history", month, { cursorId: cursor?.id ?? null }],
@@ -447,6 +472,7 @@ function HistoryView() {
 
 function TrendsView() {
   const [days, setDays] = useState(30);
+  const [keywordSearch, setKeywordSearch] = useState(""); // NEW: Keyword search state
   
   const { data: rawData, isLoading, error } = useQuery({
     queryKey: ["trends", days],
@@ -456,13 +482,29 @@ function TrendsView() {
 
   const rows = rawData ?? [];
 
+  // NEW: Filter rows by keyword in subject/description
+  const filteredRows = useMemo(() => {
+    const keywords = keywordSearch.trim().toLowerCase().split(/\s+/).filter(k => k.length > 0);
+    if (keywords.length === 0) return rows;
+    
+    return rows.filter(r => {
+      const subject = (r.subject || "").toLowerCase();
+      const description = (r.description || "").toLowerCase();
+      const combined = `${subject} ${description}`;
+      
+      // Check if ALL keywords are present (AND logic)
+      return keywords.every(kw => combined.includes(kw));
+    });
+  }, [rows, keywordSearch]);
+
   // Calculate trends
   const trends = useMemo(() => {
-    if (!rows.length) return null;
+    const dataToAnalyze = filteredRows; // Use filtered data
+    if (!dataToAnalyze.length) return null;
 
     // Daily escalation counts
     const dailyCounts = {};
-    rows.forEach(r => {
+    dataToAnalyze.forEach(r => {
       const date = toDate(r.escalationDate);
       if (!date) return;
       const dayKey = dayjs(date).format("YYYY-MM-DD");
@@ -484,7 +526,7 @@ function TrendsView() {
 
     // Top escalators
     const escalatorCounts = {};
-    rows.forEach(r => {
+    dataToAnalyze.forEach(r => {
       const esc = r.escalator || "Unknown";
       escalatorCounts[esc] = (escalatorCounts[esc] || 0) + 1;
     });
@@ -495,7 +537,7 @@ function TrendsView() {
 
     // Top teams
     const teamCounts = {};
-    rows.forEach(r => {
+    dataToAnalyze.forEach(r => {
       const team = r.escalatedTo || r.team || "Unknown";
       teamCounts[team] = (teamCounts[team] || 0) + 1;
     });
@@ -506,7 +548,7 @@ function TrendsView() {
 
     // Top buildings
     const buildingCounts = {};
-    rows.forEach(r => {
+    dataToAnalyze.forEach(r => {
       const building = r.building || r.buildingName || r.buildingCode || "Unknown";
       buildingCounts[building] = (buildingCounts[building] || 0) + 1;
     });
@@ -515,8 +557,26 @@ function TrendsView() {
       .slice(0, 10)
       .map(([name, count]) => ({ name, count }));
 
+    // NEW: Top Keywords analysis
+    const wordCounts = {};
+    dataToAnalyze.forEach(r => {
+      const words = [
+        ...extractWords(r.subject),
+        ...extractWords(r.description)
+      ];
+      words.forEach(word => {
+        if (!STOP_WORDS.has(word)) {
+          wordCounts[word] = (wordCounts[word] || 0) + 1;
+        }
+      });
+    });
+    const topKeywords = Object.entries(wordCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15)
+      .map(([name, count]) => ({ name, count }));
+
     // Summary stats
-    const totalEscalations = rows.length;
+    const totalEscalations = dataToAnalyze.length;
     const avgPerDay = (totalEscalations / days).toFixed(1);
     const uniqueTeams = Object.keys(teamCounts).length;
     const uniqueBuildings = Object.keys(buildingCounts).length;
@@ -526,12 +586,13 @@ function TrendsView() {
       topEscalators,
       topTeams,
       topBuildings,
+      topKeywords, // NEW
       totalEscalations,
       avgPerDay,
       uniqueTeams,
       uniqueBuildings,
     };
-  }, [rows, days]);
+  }, [filteredRows, days]);
 
   if (error) {
     return (
@@ -559,7 +620,7 @@ function TrendsView() {
 
   return (
     <div className="panel">
-      {/* Time range selector */}
+      {/* Time range selector and keyword search */}
       <div className="history-toolbar" style={{ marginBottom: 16 }}>
         <label>
           Time Range
@@ -576,47 +637,103 @@ function TrendsView() {
             <option value={90}>Last 90 Days</option>
           </select>
         </label>
+        
+        {/* NEW: Keyword search input */}
+        <input
+          className="search"
+          placeholder="Filter by keywords (e.g., 'password reset')"
+          value={keywordSearch}
+          onChange={(e) => setKeywordSearch(e.target.value)}
+          style={{ minWidth: 250 }}
+        />
+        
+        {keywordSearch && (
+          <button 
+            className="btn" 
+            onClick={() => setKeywordSearch("")}
+            style={{ padding: '8px 12px' }}
+          >
+            Clear Filter
+          </button>
+        )}
       </div>
 
-      {/* Summary KPIs */}
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
-        <Kpi label={`Total (${days} days)`} value={trends.totalEscalations} />
-        <Kpi label="Avg Per Day" value={trends.avgPerDay} />
-        <Kpi label="Unique Teams" value={trends.uniqueTeams} />
-        <Kpi label="Unique Buildings" value={trends.uniqueBuildings} />
-      </div>
+      {/* Show filter status */}
+      {keywordSearch && (
+        <div style={{ 
+          marginBottom: 16, 
+          padding: '8px 12px', 
+          background: '#eff6ff', 
+          border: '1px solid #bfdbfe',
+          borderRadius: 8,
+          fontSize: 14,
+          color: '#1e40af'
+        }}>
+          📊 Showing {filteredRows.length} of {rows.length} escalations matching "{keywordSearch}"
+        </div>
+      )}
 
-      {/* Escalations Over Time */}
-      <div className="card" style={{ marginTop: 20, padding: 20 }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
-          Escalations Over Time
-        </h3>
-        <LineChart data={trends.timelineData} maxHeight={250} />
-      </div>
+      {filteredRows.length === 0 ? (
+        <div className="empty">
+          No escalations found matching "{keywordSearch}". Try different keywords.
+        </div>
+      ) : (
+        <>
+          {/* Summary KPIs */}
+          <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+            <Kpi label={`Total (${days} days)`} value={trends.totalEscalations} />
+            <Kpi label="Avg Per Day" value={trends.avgPerDay} />
+            <Kpi label="Unique Teams" value={trends.uniqueTeams} />
+            <Kpi label="Unique Buildings" value={trends.uniqueBuildings} />
+          </div>
 
-      {/* Top Escalators */}
-      <div className="card" style={{ marginTop: 20, padding: 20 }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
-          Top Escalators
-        </h3>
-        <HorizontalBarChart data={trends.topEscalators} color="#10b981" />
-      </div>
+          {/* Escalations Over Time */}
+          <div className="card" style={{ marginTop: 20, padding: 20 }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+              Escalations Over Time
+            </h3>
+            <LineChart data={trends.timelineData} maxHeight={250} />
+          </div>
 
-      {/* Top Teams */}
-      <div className="card" style={{ marginTop: 20, padding: 20 }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
-          Top Teams (Most Escalations Received)
-        </h3>
-        <HorizontalBarChart data={trends.topTeams} color="#f59e0b" />
-      </div>
+          {/* NEW: Top Keywords */}
+          <div className="card" style={{ marginTop: 20, padding: 20 }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 600 }}>
+              Top Keywords in Escalations
+            </h3>
+            <p style={{ margin: '0 0 16px 0', fontSize: 13, color: 'var(--muted)' }}>
+              Most frequent words found in subject lines and descriptions (excluding common words)
+            </p>
+            <HorizontalBarChart data={trends.topKeywords} color="#dc2626" />
+            <div style={{ marginTop: 16, fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
+              💡 Tip: Click on any keyword above to copy it, then paste it in the filter box to drill deeper
+            </div>
+          </div>
 
-      {/* Top Buildings */}
-      <div className="card" style={{ marginTop: 20, padding: 20 }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
-          Top Buildings (Most Escalations)
-        </h3>
-        <HorizontalBarChart data={trends.topBuildings} color="#8b5cf6" />
-      </div>
+          {/* Top Escalators */}
+          <div className="card" style={{ marginTop: 20, padding: 20 }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+              Top Escalators
+            </h3>
+            <HorizontalBarChart data={trends.topEscalators} color="#10b981" />
+          </div>
+
+          {/* Top Teams */}
+          <div className="card" style={{ marginTop: 20, padding: 20 }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+              Top Teams (Most Escalations Received)
+            </h3>
+            <HorizontalBarChart data={trends.topTeams} color="#f59e0b" />
+          </div>
+
+          {/* Top Buildings */}
+          <div className="card" style={{ marginTop: 20, padding: 20 }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+              Top Buildings (Most Escalations)
+            </h3>
+            <HorizontalBarChart data={trends.topBuildings} color="#8b5cf6" />
+          </div>
+        </>
+      )}
     </div>
   );
 }
