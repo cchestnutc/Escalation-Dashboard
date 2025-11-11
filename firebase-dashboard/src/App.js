@@ -22,40 +22,26 @@ function monthKey(d = new Date()) { return `${d.getFullYear()}-${String(d.getMon
 function monthBounds(yyyymm){ const [y,m]=yyyymm.split("-").map(Number); return { start:new Date(y,m-1,1,0,0,0,0), next:new Date(y,m,1,0,0,0,0) }; }
 function toDate(v){ if(!v) return null; if(typeof v?.toDate==="function") return v.toDate(); const d=new Date(v); return isNaN(d)?null:d; }
 function RowDate({ value }){ const d=toDate(value); return <>{d?dayjs(d).format("YYYY-MM-DD HH:mm"):"-"}</>; }
-function SafeLink({ url, ticketUrl, link, ticketLink, ticketId, ticketNumber, ticket_number }) {
-  // Try to find a ticket number/ID from various possible field names
-  const ticketNum = ticketId || ticketNumber || ticket_number;
+function SafeLink({ description }) {
+  if (!description) return <>-</>;
   
-  // If we have a ticket number, construct the Freshservice URL
-  if (ticketNum) {
-    const href = `https://parkhill.freshservice.com/a/tickets/${ticketNum}?current_tab=details`;
+  // Extract ticket number from description pattern: [#INC-559534]
+  // We want only the 6-digit number (559534)
+  const match = String(description).match(/\[#INC-(\d{6})\]/);
+  
+  if (match && match[1]) {
+    const ticketNumber = match[1];
+    const href = `https://parkhill.freshservice.com/a/tickets/${ticketNumber}?current_tab=details`;
+    
     return (
       <a href={href} target="_blank" rel="noopener noreferrer">
-        {ticketNum}
+        {ticketNumber}
       </a>
     );
   }
   
-  // Fallback: try the provided URL fields
-  const rawUrl = url || ticketUrl || link || ticketLink;
-  
-  if (!rawUrl) return <>-</>;
-
-  // Clean cases like "...392e44Subject:" or URL-encoded "Subject%3A"
-  const raw = String(rawUrl).trim();
-  const m =
-    raw.match(/(https?:\/\/[^\s]*?)(?:Subject:|Subject%3A|$)/i) || [];
-  const href = (m[1] || raw).replace(/[)\s]+$/g, "");
-
-  // Try to extract ticket number from URL if possible
-  const ticketMatch = href.match(/tickets\/(\d+)/);
-  const displayText = ticketMatch ? ticketMatch[1] : "Open";
-
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer">
-      {displayText}
-    </a>
-  );
+  // If no match found, show "-"
+  return <>-</>;
 }
 
 // NEW: Text extraction helper for keyword analysis
@@ -398,19 +384,6 @@ function Tabs({ active, onChange }) {
 function Table({ rows }) {
   if (!rows || rows.length === 0) return <div className="empty">No data</div>;
   
-  // DEBUG: Show field names in console to identify ticket field
-  if (rows.length > 0) {
-    console.log('=== TICKET FIELD DEBUG ===');
-    console.log('Available fields:', Object.keys(rows[0]));
-    console.log('First row sample:', rows[0]);
-    console.log('Checking ticket ID fields:');
-    console.log('  - ticketId:', rows[0].ticketId);
-    console.log('  - ticketNumber:', rows[0].ticketNumber);
-    console.log('  - ticket_number:', rows[0].ticket_number);
-    console.log('  - id:', rows[0].id);
-    console.log('==========================');
-  }
-  
   return (
     <div className="table">
       <div className="thead">
@@ -425,15 +398,7 @@ function Table({ rows }) {
       {rows.map((r) => (
         <div className="trow" key={r.id}>
           <div className="truncate">
-            <SafeLink 
-              url={r.ticketUrl} 
-              ticketUrl={r.ticketURL} 
-              link={r.url} 
-              ticketLink={r.ticketLink}
-              ticketId={r.ticketId}
-              ticketNumber={r.ticketNumber}
-              ticket_number={r.ticket_number}
-            />
+            <SafeLink description={r.description} />
           </div>
           <div className="truncate" title={r.subject}>{r.subject || "-"}</div>
           <div className="truncate" title={r.description}>{r.description || "-"}</div>
