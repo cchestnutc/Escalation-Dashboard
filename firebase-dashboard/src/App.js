@@ -398,11 +398,18 @@ function Tabs({ active, onChange }) {
 function Table({ rows }) {
   if (!rows || rows.length === 0) return <div className="empty">No data</div>;
   
-  // DEBUG: Uncomment the lines below to see what fields are in your data
-  // if (rows.length > 0) {
-  //   console.log('First row fields:', Object.keys(rows[0]));
-  //   console.log('First row data:', rows[0]);
-  // }
+  // DEBUG: Show field names in console to identify ticket field
+  if (rows.length > 0) {
+    console.log('=== TICKET FIELD DEBUG ===');
+    console.log('Available fields:', Object.keys(rows[0]));
+    console.log('First row sample:', rows[0]);
+    console.log('Checking ticket ID fields:');
+    console.log('  - ticketId:', rows[0].ticketId);
+    console.log('  - ticketNumber:', rows[0].ticketNumber);
+    console.log('  - ticket_number:', rows[0].ticket_number);
+    console.log('  - id:', rows[0].id);
+    console.log('==========================');
+  }
   
   return (
     <div className="table">
