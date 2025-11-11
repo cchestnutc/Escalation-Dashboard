@@ -25,9 +25,18 @@ function RowDate({ value }){ const d=toDate(value); return <>{d?dayjs(d).format(
 function SafeLink({ description }) {
   if (!description) return <>-</>;
   
-  // Extract ticket number from description pattern: [#INC-559534]
-  // We want only the 6-digit number (559534)
-  const match = String(description).match(/\[#INC-(\d{6})\]/);
+  const descStr = String(description);
+  
+  // Try to extract ticket number from two possible patterns:
+  // 1. [#INC-XXXXXX] - Incident tickets
+  // 2. [#SR-XXXXXX] - Service Request tickets
+  
+  let match = descStr.match(/\[#INC-(\d{6})\]/);
+  
+  if (!match) {
+    // Try service request pattern if incident pattern didn't match
+    match = descStr.match(/\[#SR-(\d{6})\]/);
+  }
   
   if (match && match[1]) {
     const ticketNumber = match[1];
