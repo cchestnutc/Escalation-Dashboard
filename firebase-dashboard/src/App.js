@@ -185,7 +185,35 @@ async function fetchHistoryPage({ yyyymm, pageSize = 200, cursor }) {
   return { rows: snap.docs.map(d=>({id:d.id,...d.data()})), cursor: snap.docs.at(-1) ?? null };
 }
 
-// Add this new function after fetchTrendsData and before the Chart Components section
+// Add this new function after fetchHistoryPage
+
+async function fetchTrendsData({ days = 30 }) {
+  const col = collection(db, "escalations");
+  const start = new Date();
+  start.setDate(start.getDate() - days);
+  start.setHours(0, 0, 0, 0);
+
+  // Fetch escalations for the specified period
+  try {
+    let qy = query(col,
+      where("escalationDate", ">=", start),
+      orderBy("escalationDate", "desc"),
+      limit(2000)
+    );
+    const snap = await getDocs(qy);
+    if (!snap.empty) return snap.docs.map(d=>({id:d.id,...d.data()}));
+  } catch {}
+
+  // ISO string fallback
+  const sISO = start.toISOString();
+  let qy = query(col,
+    where("escalationDate", ">=", sISO),
+    orderBy("escalationDate", "desc"),
+    limit(2000)
+  );
+  const snap = await getDocs(qy);
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
 
 async function fetchBuildingsData({ days = 30 }) {
   const col = collection(db, "escalations");
