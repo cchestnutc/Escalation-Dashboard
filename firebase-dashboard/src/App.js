@@ -282,6 +282,7 @@ async function fetchPreviousYearData({ days = 30 }) {
 function BuildingsView() {
   const [days, setDays] = useState(30);
   const [selectedBuilding, setSelectedBuilding] = useState(null);
+  const [selectedTeam, setSelectedTeam] = useState(null);
   
   const { data: currentData, isLoading: currentLoading } = useQuery({
     queryKey: ["buildings-current", days],
@@ -340,6 +341,44 @@ function BuildingsView() {
       }))
       .sort((a, b) => b.current - a.current);
 
+    // NEW: Team stats with building breakdown
+    const teamStats = {};
+    currentRows.forEach(r => {
+      const team = r.escalatedTo || r.team || "Unknown";
+      const building = r.building || r.buildingName || r.buildingCode || "Unknown";
+      
+      if (!teamStats[team]) {
+        teamStats[team] = {
+          total: 0,
+          buildings: {}
+        };
+      }
+      
+      teamStats[team].total++;
+      teamStats[team].buildings[building] = (teamStats[team].buildings[building] || 0) + 1;
+    });
+
+    // Previous year team stats
+    const previousTeamStats = {};
+    previousRows.forEach(r => {
+      const team = r.escalatedTo || r.team || "Unknown";
+      previousTeamStats[team] = (previousTeamStats[team] || 0) + 1;
+    });
+
+    // Teams data with comparison
+    const teamsData = Object.entries(teamStats)
+      .map(([name, stats]) => ({
+        name,
+        current: stats.total,
+        previous: previousTeamStats[name] || 0,
+        change: stats.total - (previousTeamStats[name] || 0),
+        changePercent: previousTeamStats[name] 
+          ? (((stats.total - previousTeamStats[name]) / previousTeamStats[name]) * 100).toFixed(1)
+          : null,
+        buildings: stats.buildings
+      }))
+      .sort((a, b) => b.current - a.current);
+
     // Overall team distribution
     const teamCounts = {};
     currentRows.forEach(r => {
@@ -353,6 +392,7 @@ function BuildingsView() {
 
     return {
       buildingsData,
+      teamsData,
       topTeams,
       totalCurrent: currentRows.length,
       totalPrevious: previousRows.length,
@@ -396,6 +436,7 @@ function BuildingsView() {
             onChange={(e) => {
               setDays(Number(e.target.value));
               setSelectedBuilding(null);
+              setSelectedTeam(null);
             }}
             style={{ width: 'auto', minWidth: 180 }}
           >
@@ -500,6 +541,94 @@ function BuildingsView() {
           </table>
         </div>
       </div>
+
+      {/* Teams Breakdown by Building */}
+      <div className="card" style={{ marginTop: 20, padding: 20 }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+          Escalations by Team (with Building Breakdown)
+        </h3>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--line)', background: '#fafafa' }}>
+                <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600 }}>Team</th>
+                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>{currentYear}</th>
+                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>{previousYear}</th>
+                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>Change</th>
+                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>Top Building</th>
+                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.teamsData.map((team, idx) => {
+                const topBuilding = Object.entries(team.buildings)
+                  .sort((a, b) => b[1] - a[1])[0];
+                
+                return (
+                  <tr key={idx} style={{ 
+                    borderBottom: '1px solid var(--line-soft)',
+                    background: idx % 2 === 0 ? '#fff' : '#fcfcfd'
+                  }}>
+                    <td style={{ padding: '12px', fontWeight: 500 }}>{team.name}</td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>{team.current}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: 'var(--muted)' }}>
+                      {team.previous}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <span style={{ 
+                        color: team.change > 0 ? '#dc2626' : team.change < 0 ? '#16a34a' : 'var(--muted)',
+                        fontWeight: 600
+                      }}>
+                        {team.change > 0 ? '+' : ''}{team.change}
+                        {team.changePercent && ` (${team.change > 0 ? '+' : ''}${team.changePercent}%)`}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontSize: 13 }}>
+                      {topBuilding ? `${topBuilding[0]} (${topBuilding[1]})` : '-'}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <button
+                        className="btn"
+                        style={{ fontSize: 12, padding: '4px 8px' }}
+                        onClick={() => setSelectedTeam(team.name)}
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Selected Team Details */}
+      {selectedTeam && (
+        <div className="card" style={{ marginTop: 20, padding: 20, background: '#f0f9ff', border: '2px solid #3b82f6' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+              👥 {selectedTeam} - Building Sources
+            </h3>
+            <button
+              className="btn"
+              onClick={() => setSelectedTeam(null)}
+              style={{ fontSize: 12 }}
+            >
+              Close
+            </button>
+          </div>
+          <p style={{ margin: '0 0 16px 0', fontSize: 13, color: 'var(--muted)' }}>
+            Which buildings are escalating tickets to this team
+          </p>
+          <HorizontalBarChart 
+            data={Object.entries(analysis.teamsData.find(t => t.name === selectedTeam)?.buildings || {})
+              .sort((a, b) => b[1] - a[1])
+              .map(([name, count]) => ({ name, count }))}
+            color="#3b82f6"
+          />
+        </div>
+      )}
 
       {/* Selected Building Details */}
       {selectedBuildingData && (
