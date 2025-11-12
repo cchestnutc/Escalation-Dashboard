@@ -185,18 +185,20 @@ async function fetchHistoryPage({ yyyymm, pageSize = 200, cursor }) {
   return { rows: snap.docs.map(d=>({id:d.id,...d.data()})), cursor: snap.docs.at(-1) ?? null };
 }
 
-async function fetchTrendsData({ days = 30 }) {
+// Add this new function after fetchTrendsData and before the Chart Components section
+
+async function fetchBuildingsData({ days = 30 }) {
   const col = collection(db, "escalations");
   const start = new Date();
   start.setDate(start.getDate() - days);
   start.setHours(0, 0, 0, 0);
 
-  // Fetch all escalations from the last N days
+  // Fetch escalations for current period
   try {
     let qy = query(col,
       where("escalationDate", ">=", start),
       orderBy("escalationDate", "desc"),
-      limit(1000) // Get up to 1000 records for trends
+      limit(2000)
     );
     const snap = await getDocs(qy);
     if (!snap.empty) return snap.docs.map(d=>({id:d.id,...d.data()}));
@@ -207,12 +209,304 @@ async function fetchTrendsData({ days = 30 }) {
   let qy = query(col,
     where("escalationDate", ">=", sISO),
     orderBy("escalationDate", "desc"),
-    limit(1000)
+    limit(2000)
   );
   const snap = await getDocs(qy);
   return snap.docs.map(d=>({id:d.id,...d.data()}));
 }
 
+async function fetchPreviousYearData({ days = 30 }) {
+  const col = collection(db, "escalations");
+  const start = new Date();
+  start.setFullYear(start.getFullYear() - 1); // Go back one year
+  start.setDate(start.getDate() - days);
+  start.setHours(0, 0, 0, 0);
+  
+  const end = new Date();
+  end.setFullYear(end.getFullYear() - 1);
+  end.setHours(23, 59, 59, 999);
+
+  try {
+    let qy = query(col,
+      where("escalationDate", ">=", start),
+      where("escalationDate", "<=", end),
+      orderBy("escalationDate", "desc"),
+      limit(2000)
+    );
+    const snap = await getDocs(qy);
+    if (!snap.empty) return snap.docs.map(d=>({id:d.id,...d.data()}));
+  } catch {}
+
+  const sISO = start.toISOString();
+  const eISO = end.toISOString();
+  let qy = query(col,
+    where("escalationDate", ">=", sISO),
+    where("escalationDate", "<=", eISO),
+    orderBy("escalationDate", "desc"),
+    limit(2000)
+  );
+  const snap = await getDocs(qy);
+  return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+// Add this new component before the App component
+
+function BuildingsView() {
+  const [days, setDays] = useState(30);
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
+  
+  const { data: currentData, isLoading: currentLoading } = useQuery({
+    queryKey: ["buildings-current", days],
+    queryFn: () => fetchBuildingsData({ days }),
+    staleTime: 5 * 60_000,
+  });
+
+  const { data: previousData, isLoading: previousLoading } = useQuery({
+    queryKey: ["buildings-previous", days],
+    queryFn: () => fetchPreviousYearData({ days }),
+    staleTime: 5 * 60_000,
+  });
+
+  const currentRows = currentData ?? [];
+  const previousRows = previousData ?? [];
+  const isLoading = currentLoading || previousLoading;
+
+  const analysis = useMemo(() => {
+    if (!currentRows.length) return null;
+
+    // Current period building stats
+    const buildingStats = {};
+    currentRows.forEach(r => {
+      const building = r.building || r.buildingName || r.buildingCode || "Unknown";
+      const team = r.escalatedTo || r.team || "Unknown";
+      
+      if (!buildingStats[building]) {
+        buildingStats[building] = {
+          total: 0,
+          teams: {}
+        };
+      }
+      
+      buildingStats[building].total++;
+      buildingStats[building].teams[team] = (buildingStats[building].teams[team] || 0) + 1;
+    });
+
+    // Previous year building stats
+    const previousBuildingStats = {};
+    previousRows.forEach(r => {
+      const building = r.building || r.buildingName || r.buildingCode || "Unknown";
+      previousBuildingStats[building] = (previousBuildingStats[building] || 0) + 1;
+    });
+
+    // Top buildings with comparison
+    const buildingsData = Object.entries(buildingStats)
+      .map(([name, stats]) => ({
+        name,
+        current: stats.total,
+        previous: previousBuildingStats[name] || 0,
+        change: stats.total - (previousBuildingStats[name] || 0),
+        changePercent: previousBuildingStats[name] 
+          ? (((stats.total - previousBuildingStats[name]) / previousBuildingStats[name]) * 100).toFixed(1)
+          : null,
+        teams: stats.teams
+      }))
+      .sort((a, b) => b.current - a.current);
+
+    // Overall team distribution
+    const teamCounts = {};
+    currentRows.forEach(r => {
+      const team = r.escalatedTo || r.team || "Unknown";
+      teamCounts[team] = (teamCounts[team] || 0) + 1;
+    });
+    const topTeams = Object.entries(teamCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([name, count]) => ({ name, count }));
+
+    return {
+      buildingsData,
+      topTeams,
+      totalCurrent: currentRows.length,
+      totalPrevious: previousRows.length,
+      uniqueBuildings: Object.keys(buildingStats).length,
+      uniqueTeams: Object.keys(teamCounts).length
+    };
+  }, [currentRows, previousRows]);
+
+  if (isLoading) {
+    return (
+      <div className="panel">
+        <div className="loading">Loading building analysis…</div>
+      </div>
+    );
+  }
+
+  if (!analysis || !currentRows.length) {
+    return (
+      <div className="panel">
+        <div className="empty">No escalation data available for the selected period.</div>
+      </div>
+    );
+  }
+
+  const selectedBuildingData = selectedBuilding 
+    ? analysis.buildingsData.find(b => b.name === selectedBuilding)
+    : null;
+
+  const currentYear = new Date().getFullYear();
+  const previousYear = currentYear - 1;
+
+  return (
+    <div className="panel">
+      {/* Time range selector */}
+      <div className="history-toolbar" style={{ marginBottom: 16 }}>
+        <label>
+          Time Period
+          <select
+            className="search"
+            value={days}
+            onChange={(e) => {
+              setDays(Number(e.target.value));
+              setSelectedBuilding(null);
+            }}
+            style={{ width: 'auto', minWidth: 180 }}
+          >
+            <option value={7}>Last 7 Days</option>
+            <option value={30}>Last 30 Days</option>
+            <option value={90}>Last 90 Days</option>
+            <option value={180}>Last 180 Days</option>
+            <option value={365}>Last Year</option>
+          </select>
+        </label>
+      </div>
+
+      {/* Summary KPIs */}
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }}>
+        <Kpi label={`Total (${days} days)`} value={analysis.totalCurrent} />
+        <Kpi label={`${previousYear} Same Period`} value={analysis.totalPrevious} />
+        <Kpi label="Buildings Affected" value={analysis.uniqueBuildings} />
+        <Kpi label="Teams Involved" value={analysis.uniqueTeams} />
+      </div>
+
+      {/* Year-over-Year Comparison */}
+      <div className="card" style={{ marginTop: 20, padding: 20 }}>
+        <h3 style={{ margin: '0 0 8px 0', fontSize: 16, fontWeight: 600 }}>
+          Year-over-Year Comparison
+        </h3>
+        <p style={{ margin: '0 0 16px 0', fontSize: 13, color: 'var(--muted)' }}>
+          {currentYear} vs {previousYear} (same {days}-day period)
+        </p>
+        <div style={{ 
+          padding: '16px', 
+          background: analysis.totalCurrent > analysis.totalPrevious ? '#fef2f2' : '#f0fdf4',
+          borderRadius: 8,
+          border: `1px solid ${analysis.totalCurrent > analysis.totalPrevious ? '#fecaca' : '#bbf7d0'}`
+        }}>
+          <div style={{ fontSize: 24, fontWeight: 700 }}>
+            {analysis.totalCurrent > analysis.totalPrevious ? '↑' : '↓'} {Math.abs(analysis.totalCurrent - analysis.totalPrevious)} escalations
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 4 }}>
+            {((Math.abs(analysis.totalCurrent - analysis.totalPrevious) / (analysis.totalPrevious || 1)) * 100).toFixed(1)}%{' '}
+            {analysis.totalCurrent > analysis.totalPrevious ? 'increase' : 'decrease'} from last year
+          </div>
+        </div>
+      </div>
+
+      {/* Buildings Overview with Team Breakdown */}
+      <div className="card" style={{ marginTop: 20, padding: 20 }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+          Escalations by Building
+        </h3>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--line)', background: '#fafafa' }}>
+                <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600 }}>Building</th>
+                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>{currentYear}</th>
+                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>{previousYear}</th>
+                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>Change</th>
+                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>Top Team</th>
+                <th style={{ padding: '12px', textAlign: 'center', fontWeight: 600 }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.buildingsData.map((building, idx) => {
+                const topTeam = Object.entries(building.teams)
+                  .sort((a, b) => b[1] - a[1])[0];
+                
+                return (
+                  <tr key={idx} style={{ 
+                    borderBottom: '1px solid var(--line-soft)',
+                    background: idx % 2 === 0 ? '#fff' : '#fcfcfd'
+                  }}>
+                    <td style={{ padding: '12px', fontWeight: 500 }}>{building.name}</td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>{building.current}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', color: 'var(--muted)' }}>
+                      {building.previous}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <span style={{ 
+                        color: building.change > 0 ? '#dc2626' : building.change < 0 ? '#16a34a' : 'var(--muted)',
+                        fontWeight: 600
+                      }}>
+                        {building.change > 0 ? '+' : ''}{building.change}
+                        {building.changePercent && ` (${building.change > 0 ? '+' : ''}${building.changePercent}%)`}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontSize: 13 }}>
+                      {topTeam ? `${topTeam[0]} (${topTeam[1]})` : '-'}
+                    </td>
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <button
+                        className="btn"
+                        style={{ fontSize: 12, padding: '4px 8px' }}
+                        onClick={() => setSelectedBuilding(building.name)}
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Selected Building Details */}
+      {selectedBuildingData && (
+        <div className="card" style={{ marginTop: 20, padding: 20, background: '#fffbeb', border: '2px solid #fbbf24' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
+              📍 {selectedBuildingData.name} - Team Breakdown
+            </h3>
+            <button
+              className="btn"
+              onClick={() => setSelectedBuilding(null)}
+              style={{ fontSize: 12 }}
+            >
+              Close
+            </button>
+          </div>
+          <HorizontalBarChart 
+            data={Object.entries(selectedBuildingData.teams)
+              .sort((a, b) => b[1] - a[1])
+              .map(([name, count]) => ({ name, count }))}
+            color="#f59e0b"
+          />
+        </div>
+      )}
+
+      {/* Overall Team Distribution */}
+      <div className="card" style={{ marginTop: 20, padding: 20 }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: 16, fontWeight: 600 }}>
+          Overall Team Distribution
+        </h3>
+        <HorizontalBarChart data={analysis.topTeams} color="#3b82f6" />
+      </div>
+    </div>
+  );
+}
 /* -------------------------
    Chart Components (CSS-based)
 ------------------------- */
