@@ -699,7 +699,7 @@ function Kpi({ label, value }) {
 function Tabs({ active, onChange }) {
   return (
     <div className="tabs">
-      {["today", "history", "trends"].map((t) => (
+      {["today", "history", "trends", "buildings"].map((t) => (
         <button
           key={t}
           className={`tab ${active === t ? "active" : ""}`}
@@ -1153,6 +1153,7 @@ export default function App() {
       {tab === "today" && <TodayView />}
       {tab === "history" && <HistoryView />}
       {tab === "trends" && <TrendsView />}
+      {tab === "buildings" && <BuildingsView />}
     </div>
   );
 }
